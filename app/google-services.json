@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "555085029105",
+    "project_id": "tripapp-40c61",
+    "storage_bucket": "tripapp-40c61.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:555085029105:android:6f763e6e3f606b4e1f9350",
+        "android_client_info": {
+          "package_name": "com.cagri.tripapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "555085029105-5ba0gq6r1mqearlf5ktlqurvhcvc4imc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-10uFKgxjANorkesBkH8wnbm2TRF9b18"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "555085029105-5ba0gq6r1mqearlf5ktlqurvhcvc4imc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
