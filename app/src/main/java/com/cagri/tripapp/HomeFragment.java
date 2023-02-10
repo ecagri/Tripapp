@@ -25,12 +25,15 @@ import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -108,21 +111,29 @@ public class HomeFragment extends Fragment {
             fragmentTransaction.commit();
         });
 
-        db.collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        db.collection("users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
                 if(task.isSuccessful()){
-                    DocumentSnapshot documentSnapshot = task.getResult();
-                    if(documentSnapshot.exists()){
+                    List<Post> postArray = new ArrayList<>();
+                    for(QueryDocumentSnapshot documentSnapshot: task.getResult()){
                         String username = documentSnapshot.getData().get("username").toString();
                         String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
                         ArrayList<Map<String, Object>> posts = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("posts");
-
-                        for(int i = 0; i < posts.size(); i++){
-                            String post_description = posts.get(i).get("post_description").toString();
-                            String post_picture = posts.get(i).get("post_picture").toString();
-                            createPost(username, post_description, profile_picture, post_picture);
+                        if(posts != null) {
+                            for (int i = posts.size() - 1; i >= 0; i--) {
+                                String post_description = posts.get(i).get("post_description").toString();
+                                String post_picture = posts.get(i).get("post_picture").toString();
+                                String post_date = posts.get(i).get("date").toString();
+                                postArray.add(new Post(username, profile_picture, post_description, post_picture, post_date));
+                            }
                         }
+                    }
+                    Collections.sort(postArray, Collections.reverseOrder());
+
+                    for(int i = 0; i < postArray.size(); i++){
+                        Post post = postArray.get(i);
+                        createPost(post.getUsername(), post.getDescription(), post.getProfile_picture(), post.getPost_picture());
                     }
                 }
             }
@@ -143,11 +154,17 @@ public class HomeFragment extends Fragment {
         CardView frame = new CardView(getActivity());
         View line = new View(getActivity());
         View space = new View(getActivity());
+        View space2 = new View(getActivity());
+
         TextView username = new TextView(getActivity());
         TextView post_text = new TextView(getActivity());
 
-        Glide.with(view).load(picPost).into(post_pic);
-        Glide.with(view).load(profilePicture).circleCrop().into(profile_pic);
+        if(!picPost.equals(""))
+            Glide.with(view).load(picPost).into(post_pic);
+        if(!profilePicture.equals(""))
+            Glide.with(view).load(profilePicture).circleCrop().into(profile_pic);
+        else
+            Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(profile_pic);
         Glide.with(view).load(R.drawable.baseline_favorite_border_24).into(fav_button);
         Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
 
@@ -186,12 +203,13 @@ public class HomeFragment extends Fragment {
 
         username.setText(nameOfUser);
         username.setTextSize(20);
-        //username.setTypeface(username.getTypeface(), Typeface.BOLD);
         username.setTextColor(Color.BLACK);
         post_text.setText(postDescription);
         post_text.setTextSize(20);
         line.setBackgroundColor(Color.BLACK);
         space.setBackgroundColor(Color.WHITE);
+        space2.setBackgroundColor(Color.WHITE);
+
         post_pic.setScaleType(ImageView.ScaleType.FIT_XY);
 
         frame.addView(post_pic, MATCH_PARENT, WRAP_CONTENT);
@@ -210,9 +228,10 @@ public class HomeFragment extends Fragment {
         ll.setOrientation(LinearLayout.HORIZONTAL);
         ll2.setOrientation(LinearLayout.HORIZONTAL);
         ll3.setOrientation(LinearLayout.VERTICAL);
+        linearLayout.addView(space2, MATCH_PARENT, 20);
         linearLayout.addView(ll);
-        linearLayout.addView(line, MATCH_PARENT, 5);
         linearLayout.addView(space, MATCH_PARENT, 20);
+        linearLayout.addView(line, MATCH_PARENT, 5);
         linearLayout.setHorizontalGravity(Gravity.RIGHT);
     }
 }

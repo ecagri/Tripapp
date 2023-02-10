@@ -117,20 +117,23 @@ public class ProfileFragment extends Fragment {
                         String username = documentSnapshot.getData().get("username").toString();
                         ((TextView)view.findViewById(R.id.textView)).setText("@"+ username);
                         String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-                        if(!profile_picture.equals(""))
+                        if(!profile_picture.equals("")) {
                             Glide.with(view).load(profile_picture).circleCrop().into(showImage);
+                        }
+                        else
+                            Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(showImage);
                         ArrayList<Map<String, Object>> posts = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("posts");
                         ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followers");
                         ArrayList<Map<String, Object>> followings = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followings");
-
                         if(posts != null) {
                             ((TextView) view.findViewById(R.id.textView7)).setText(posts.size()+"");
-                            for (int i = 0; i < posts.size(); i++) {
+                            for (int i = posts.size() - 1; i >= 0; i--) {
                                 String post_description = posts.get(i).get("post_description").toString();
                                 String post_picture = posts.get(i).get("post_picture").toString();
                                 createPost(username, post_description, profile_picture, post_picture);
                             }
                         }
+
                         if(followers != null){
                             ((TextView) view.findViewById(R.id.textView9)).setText(followers.size()+"");
                         }
@@ -166,7 +169,6 @@ public class ProfileFragment extends Fragment {
             selectedImage = data.getData();
 
             if (selectedImage != null) {
-                Glide.with(view).load(selectedImage).circleCrop().into(showImage);
                 StorageReference profile_pic = storageRef.child(mAuth.getCurrentUser().getUid().toString());
                 profile_pic.putFile(selectedImage);
                 profile_pic.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
@@ -174,12 +176,10 @@ public class ProfileFragment extends Fragment {
                     public void onSuccess(Uri uri) {
                         db.collection("users").document(mAuth.getCurrentUser().getUid()).update(
                                 "profile_pic", uri);
-                        //getActivity().finish();
+                        getActivity().finish();
                         startActivity(new Intent(getActivity(), ProfileActivity.class));
                     }
                 });
-
-
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
@@ -197,6 +197,8 @@ public class ProfileFragment extends Fragment {
         CardView frame = new CardView(getActivity());
         View line = new View(getActivity());
         View space = new View(getActivity());
+        View space2 = new View(getActivity());
+
         TextView username = new TextView(getActivity());
         TextView post_text = new TextView(getActivity());
 
@@ -249,6 +251,8 @@ public class ProfileFragment extends Fragment {
         post_text.setTextSize(20);
         line.setBackgroundColor(Color.BLACK);
         space.setBackgroundColor(Color.WHITE);
+        space2.setBackgroundColor(Color.WHITE);
+
         post_pic.setScaleType(ImageView.ScaleType.FIT_XY);
 
         frame.addView(post_pic, MATCH_PARENT, WRAP_CONTENT);
@@ -267,9 +271,10 @@ public class ProfileFragment extends Fragment {
         ll.setOrientation(LinearLayout.HORIZONTAL);
         ll2.setOrientation(LinearLayout.HORIZONTAL);
         ll3.setOrientation(LinearLayout.VERTICAL);
+        linearLayout.addView(space2, MATCH_PARENT, 20);
         linearLayout.addView(ll);
-        linearLayout.addView(line, MATCH_PARENT, 5);
         linearLayout.addView(space, MATCH_PARENT, 20);
+        linearLayout.addView(line, MATCH_PARENT, 5);
         linearLayout.setHorizontalGravity(Gravity.RIGHT);
     }
 }
