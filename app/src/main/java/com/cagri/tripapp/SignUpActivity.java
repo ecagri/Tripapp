@@ -58,9 +58,12 @@ public class SignUpActivity extends AppCompatActivity {
                                     Map<String, Object> user = new HashMap<>();
                                     user.put("username", username);
                                     user.put("profile_pic", "");
+                                    user.put("uid", mAuth.getCurrentUser().getUid());
                                     user.put("posts", new ArrayList<>());
                                     user.put("followers", new ArrayList<>());
                                     user.put("followings", new ArrayList<>());
+                                    user.put("like", new ArrayList<>());
+                                    user.put("save", new ArrayList<>());
                                     db.collection("users").document(mAuth.getCurrentUser().getUid()).set(user).addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void unused) {

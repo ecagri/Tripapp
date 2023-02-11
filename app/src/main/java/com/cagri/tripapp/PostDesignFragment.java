@@ -27,9 +27,9 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -62,7 +62,6 @@ public class PostDesignFragment extends Fragment {
     private Uri selectedImage;
 
     private Map<String, Object> post = new HashMap<>();
-
 
     public PostDesignFragment() {
         // Required empty public constructor
@@ -116,10 +115,8 @@ public class PostDesignFragment extends Fragment {
                     if(task.isSuccessful()){
                         DocumentSnapshot documentSnapshot = task.getResult();
                         if(documentSnapshot.exists()){
-
                             post.put("post_description", post_description.getText().toString());
-                            post.put("like", new ArrayList<>());
-                            post.put("save", new ArrayList<>());
+                            post.put("id", UUID.randomUUID().toString());
                             post.put("date", LocalDateTime.now().toString());
                             if(selectedImage != null) {
 

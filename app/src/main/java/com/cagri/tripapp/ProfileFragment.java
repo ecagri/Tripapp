@@ -25,11 +25,13 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -61,6 +63,10 @@ public class ProfileFragment extends Fragment {
     private FirebaseStorage storage = FirebaseStorage.getInstance();
 
     private StorageReference storageRef = storage.getReference();
+
+    private ArrayList<String> likes = new ArrayList<>();
+
+    private ArrayList<String> saves = new ArrayList<>();
     ImageView showImage;
     private Uri selectedImage;
 
@@ -120,8 +126,9 @@ public class ProfileFragment extends Fragment {
                         if(!profile_picture.equals("")) {
                             Glide.with(view).load(profile_picture).circleCrop().into(showImage);
                         }
-                        else
+                        else {
                             Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(showImage);
+                        }
                         ArrayList<Map<String, Object>> posts = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("posts");
                         ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followers");
                         ArrayList<Map<String, Object>> followings = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followings");
@@ -130,7 +137,8 @@ public class ProfileFragment extends Fragment {
                             for (int i = posts.size() - 1; i >= 0; i--) {
                                 String post_description = posts.get(i).get("post_description").toString();
                                 String post_picture = posts.get(i).get("post_picture").toString();
-                                createPost(username, post_description, profile_picture, post_picture);
+                                String post_id = posts.get(i).get("id").toString();
+                                createPost(username, post_description, profile_picture, post_picture, post_id);
                             }
                         }
 
@@ -169,15 +177,15 @@ public class ProfileFragment extends Fragment {
             selectedImage = data.getData();
 
             if (selectedImage != null) {
-                StorageReference profile_pic = storageRef.child(mAuth.getCurrentUser().getUid().toString());
+                StorageReference profile_pic = storageRef.child(mAuth.getCurrentUser().getUid());
                 profile_pic.putFile(selectedImage);
                 profile_pic.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                     @Override
                     public void onSuccess(Uri uri) {
                         db.collection("users").document(mAuth.getCurrentUser().getUid()).update(
                                 "profile_pic", uri);
-                        getActivity().finish();
                         startActivity(new Intent(getActivity(), ProfileActivity.class));
+                        getActivity().finish();
                     }
                 });
             }
@@ -185,7 +193,7 @@ public class ProfileFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    public void createPost(String nameOfUser, String postDescription, String profilePicture, String picPost){
+    public void createPost(String nameOfUser, String postDescription, String profilePicture, String picPost, String postId){
         linearLayout = view.findViewById(R.id.container);
         LinearLayout ll = new LinearLayout(getActivity());
         LinearLayout ll2 = new LinearLayout(getActivity());
@@ -198,34 +206,52 @@ public class ProfileFragment extends Fragment {
         View line = new View(getActivity());
         View space = new View(getActivity());
         View space2 = new View(getActivity());
-
         TextView username = new TextView(getActivity());
         TextView post_text = new TextView(getActivity());
 
-        if(!picPost.equals(""))
-            Glide.with(view).load(picPost).into(post_pic);
-        if(!profilePicture.equals(""))
-            Glide.with(view).load(profilePicture).circleCrop().into(profile_pic);
-        else
-            Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(profile_pic);
-        Glide.with(view).load(R.drawable.baseline_favorite_border_24).into(fav_button);
-        Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
+        db.collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                DocumentSnapshot documentSnapshot = task.getResult();
+                String name = documentSnapshot.getData().get("username").toString();
+                likes = (ArrayList<String>) documentSnapshot.getData().get("like");
+                saves = (ArrayList<String>) documentSnapshot.getData().get("save");
 
-        fav_button.setBackgroundColor(Color.TRANSPARENT);
-        fav_button.setContentDescription("notfavved");
-        save_button.setBackgroundColor(Color.TRANSPARENT);
-        save_button.setContentDescription("notsaved");
+                if (likes != null && likes.contains(postId)) {
+                    Glide.with(view).load(R.drawable.baseline_favorite_24).into(fav_button);
+                    fav_button.setContentDescription("favved");
+                }
 
+                else{
+                    Glide.with(view).load(R.drawable.baseline_favorite_border_24).into(fav_button);
+                    fav_button.setContentDescription("notfavved");
+                }
+
+                if (saves != null && saves.contains(postId)) {
+                    Glide.with(view).load(R.drawable.baseline_download_done_24).into(save_button);
+                    save_button.setContentDescription("saved");
+                }
+
+                else{
+
+                    Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
+                    save_button.setContentDescription("notsaved");
+                }
+            }
+        });
         fav_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if(fav_button.getContentDescription() == "notfavved") {
                     Glide.with(view).load(R.drawable.baseline_favorite_24).into(fav_button);
                     fav_button.setContentDescription("favved");
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("like", FieldValue.arrayUnion(postId));
+
                 }
                 else {
                     Glide.with(view).load(R.drawable.baseline_favorite_border_24).into(fav_button);
                     fav_button.setContentDescription("notfavved");
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("like", FieldValue.arrayRemove(postId));
                 }
             }
         });
@@ -236,14 +262,27 @@ public class ProfileFragment extends Fragment {
                 if(save_button.getContentDescription() == "notsaved"){
                     Glide.with(view).load(R.drawable.baseline_download_done_24).into(save_button);
                     save_button.setContentDescription("saved");
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayUnion(postId));
                 }
                 else{
                     Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
                     save_button.setContentDescription("notsaved");
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayRemove(postId));
+
                 }
             }
         });
 
+        if(!picPost.equals(""))
+            Glide.with(view).load(picPost).into(post_pic);
+        if(!profilePicture.equals("")) {
+            Glide.with(view).load(profilePicture).diskCacheStrategy(DiskCacheStrategy.NONE).circleCrop().into(profile_pic);
+        }
+        else
+            Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(profile_pic);
+
+        fav_button.setBackgroundColor(Color.TRANSPARENT);
+        save_button.setBackgroundColor(Color.TRANSPARENT);
         username.setText(nameOfUser);
         username.setTextSize(20);
         username.setTextColor(Color.BLACK);
@@ -252,13 +291,9 @@ public class ProfileFragment extends Fragment {
         line.setBackgroundColor(Color.BLACK);
         space.setBackgroundColor(Color.WHITE);
         space2.setBackgroundColor(Color.WHITE);
-
         post_pic.setScaleType(ImageView.ScaleType.FIT_XY);
-
         frame.addView(post_pic, MATCH_PARENT, WRAP_CONTENT);
         frame.setRadius(20);
-
-
         ll3.addView(username, WRAP_CONTENT, 100);
         if(!postDescription.equals(""))
             ll3.addView(post_text);
