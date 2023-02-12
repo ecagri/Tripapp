@@ -9,13 +9,19 @@ public class Post implements Comparable{
     private String post_picture;
     private String date;
     private String id;
-    public Post(String username, String profile_picture, String description, String post_picture, String date, String id){
+
+
+
+    private String sender;
+
+    public Post(String username, String profile_picture, String description, String post_picture, String date, String id,String sender){
         this.username = username;
         this.profile_picture = profile_picture;
         this.description = description;
         this.post_picture = post_picture;
         this.date = date;
         this.id = id;
+        this.sender=sender;
     }
 
     public String getUsername() {
@@ -40,6 +46,14 @@ public class Post implements Comparable{
 
     public String getId() {
         return id;
+    }
+
+    public String getSender() {
+        return sender;
+    }
+
+    public void setSender(String sender) {
+        this.sender = sender;
     }
     @Override
     public int compareTo(Object o) {

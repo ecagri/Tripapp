@@ -7,6 +7,11 @@ import android.content.Context;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+
+import androidx.annotation.NonNull;
+import androidx.cardview.widget.CardView;
+import androidx.fragment.app.Fragment;
+
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,12 +21,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.cardview.widget.CardView;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -37,19 +36,16 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 /**
  * A simple {@link Fragment} subclass.
- * Use the {@link HomeFragment#newInstance} factory method to
+ * Use the {@link VisitProfileFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class HomeFragment extends Fragment {
+
+
+public class VisitProfileFragment extends Fragment {
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -59,6 +55,7 @@ public class HomeFragment extends Fragment {
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
+
 
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
@@ -72,17 +69,23 @@ public class HomeFragment extends Fragment {
 
     private ArrayList<String> saves = new ArrayList<>();
 
+    ImageView showImage;
+    private Uri selectedImage;
+
     LinearLayout linearLayout;
 
-    Uri selectedImage;
     View view;
 
-    public ImageView showImage;
+    Context context ;
 
-    Context context;
-
-    public HomeFragment() {
+    String sender ;
+    public VisitProfileFragment() {
         // Required empty public constructor
+    }
+
+    public VisitProfileFragment(String sender) {
+        // Required empty public constructor
+        this.sender=sender;
     }
 
     /**
@@ -91,11 +94,11 @@ public class HomeFragment extends Fragment {
      *
      * @param param1 Parameter 1.
      * @param param2 Parameter 2.
-     * @return A new instance of fragment HomeFragment.
+     * @return A new instance of fragment VisitProfileFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static HomeFragment newInstance(String param1, String param2) {
-        HomeFragment fragment = new HomeFragment();
+    public static VisitProfileFragment newInstance(String param1, String param2) {
+        VisitProfileFragment fragment = new VisitProfileFragment();
         Bundle args = new Bundle();
         args.putString(ARG_PARAM1, param1);
         args.putString(ARG_PARAM2, param2);
@@ -116,50 +119,50 @@ public class HomeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        view = inflater.inflate(R.layout.fragment_home, container, false);
-        view.findViewById(R.id.imageButton2).setOnClickListener(view1 -> {
-            PostDesignFragment fragment = new PostDesignFragment();
-            FragmentManager fragmentManager = getFragmentManager();
-            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-            fragmentTransaction.replace(R.id.frameLayout, fragment);
-            fragmentTransaction.addToBackStack(null);
-            fragmentTransaction.commit();
-        });
+        view= inflater.inflate(R.layout.fragment_visit_profile, container, false);
+        showImage = ((ImageView) view.findViewById(R.id.imageButton));
 
-        context=getContext();
-        db.collection("users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+        linearLayout = view.findViewById(R.id.container);
+        context = getContext();
+        db.collection("users").document(sender).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+
                 if(task.isSuccessful()){
-                    List<Post> postArray = new ArrayList<>();
-                    for(QueryDocumentSnapshot documentSnapshot: task.getResult()){
+                    DocumentSnapshot documentSnapshot = task.getResult();
+                    if(documentSnapshot.exists()){
+
                         String username = documentSnapshot.getData().get("username").toString();
+                        ((TextView)view.findViewById(R.id.textView)).setText("@"+ username);
                         String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-                        ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
-                        if(posts != null) {
-                            for (int i = 0; i < posts.size(); i++) {
-                                db.collection("posts").document(posts.get(i)).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                        if(task.isSuccessful()){
-                                            DocumentSnapshot document = task.getResult();
-                                            String post_description = document.getString("post_description");
-                                            String post_picture = document.getString("post_picture");
-                                            String post_id = document.getString("id");
-                                            String post_date = document.getString("date");
-                                            String sender = document.getString("sender");
-                                            createPost(username, post_description, profile_picture, post_picture, post_id,sender);
-                                            postArray.add(new Post(username, profile_picture, post_description, post_picture, post_date, post_id,sender));
-                                        }
-                                    }
-                                });
-                            }
-                            Collections.sort(postArray, Collections.reverseOrder());
-                            for(int i = 0; i < postArray.size(); i++){
-                                Post post = postArray.get(i);
-                                createPost(post.getUsername(), post.getDescription(), post.getProfile_picture(), post.getPost_picture(), post.getId(),post.getSender());
-                            }
+                        if(!profile_picture.equals("")) {
+                            Glide.with(view).load(profile_picture).circleCrop().into(showImage);
                         }
+                        else {
+                            Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(showImage);
+                        }
+                        ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followers");
+                        ArrayList<Map<String, Object>> followings = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followings");
+
+                        if(followers != null){
+                            ((TextView) view.findViewById(R.id.textView9)).setText(followers.size()+"");
+                        }
+                        if(followings != null){
+                            ((TextView) view.findViewById(R.id.textView8)).setText(followings.size()+"");
+                        }
+                        db.collection("posts").whereEqualTo("sender", sender).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                if(task.isSuccessful()){
+                                    for (QueryDocumentSnapshot document : task.getResult()) {
+                                        String post_description = document.getString("post_description");
+                                        String post_picture = document.getString("post_picture");
+                                        String post_id = document.getString("id");
+                                        createPost(username, post_description, profile_picture, post_picture, post_id);
+                                    }
+                                }
+                            }
+                        });
                     }
                 }
             }
@@ -168,7 +171,7 @@ public class HomeFragment extends Fragment {
         return view;
     }
 
-    public void createPost(String nameOfUser, String postDescription, String profilePicture, String picPost, String postId,String sender){
+    public void createPost(String nameOfUser, String postDescription, String profilePicture, String picPost, String postId){
         linearLayout = view.findViewById(R.id.container);
         LinearLayout ll = new LinearLayout(getActivity());
         LinearLayout ll2 = new LinearLayout(getActivity());
@@ -257,29 +260,6 @@ public class HomeFragment extends Fragment {
         else
             Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(profile_pic);
 
-        profile_pic.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                if(!sender.equals(mAuth.getCurrentUser().getUid()) ){
-                    VisitProfileFragment fragment = new VisitProfileFragment(sender);
-                    FragmentManager fragmentManager = getFragmentManager();
-                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                    fragmentTransaction.replace(R.id.frameLayout, fragment);
-                    fragmentTransaction.addToBackStack(null);
-                    fragmentTransaction.commit();
-
-                }else {
-                    ProfileFragment fragment = new ProfileFragment();
-                    FragmentManager fragmentManager = getFragmentManager();
-                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                    fragmentTransaction.replace(R.id.frameLayout, fragment);
-                    fragmentTransaction.addToBackStack(null);
-                    fragmentTransaction.commit();
-                }
-            }
-        });
-
         fav_button.setBackgroundColor(Color.TRANSPARENT);
         save_button.setBackgroundColor(Color.TRANSPARENT);
         username.setText(nameOfUser);
@@ -311,5 +291,4 @@ public class HomeFragment extends Fragment {
         linearLayout.addView(line, MATCH_PARENT, 5);
         linearLayout.setHorizontalGravity(Gravity.RIGHT);
     }
-
 }

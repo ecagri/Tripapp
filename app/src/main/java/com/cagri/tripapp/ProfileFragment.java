@@ -4,6 +4,7 @@ import static android.app.Activity.RESULT_OK;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -16,6 +17,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -77,8 +79,11 @@ public class ProfileFragment extends Fragment {
 
     View view;
 
+    Context context ;
+
     public ProfileFragment() {
         // Required empty public constructor
+
     }
 
     /**
@@ -116,13 +121,15 @@ public class ProfileFragment extends Fragment {
         showImage = ((ImageView) view.findViewById(R.id.imageButton));
 
         linearLayout = view.findViewById(R.id.container);
-
+        context = getContext();
         db.collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+
                 if(task.isSuccessful()){
                     DocumentSnapshot documentSnapshot = task.getResult();
                     if(documentSnapshot.exists()){
+
                         String username = documentSnapshot.getData().get("username").toString();
                         ((TextView)view.findViewById(R.id.textView)).setText("@"+ username);
                         String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
@@ -268,12 +275,16 @@ public class ProfileFragment extends Fragment {
                 if(save_button.getContentDescription() == "notsaved"){
                     Glide.with(view).load(R.drawable.baseline_download_done_24).into(save_button);
                     save_button.setContentDescription("saved");
-                    db.collection("posts").document(postId).update("save", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid()));
+                    //db.collection("posts").document(postId).update("save", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid()));
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayUnion(postId));
+                    Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show();
                 }
                 else{
                     Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
                     save_button.setContentDescription("notsaved");
-                    db.collection("posts").document(postId).update("save", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid()));
+                    //db.collection("posts").document(postId).update("save", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid()));
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayRemove(postId));
+
                 }
             }
         });
