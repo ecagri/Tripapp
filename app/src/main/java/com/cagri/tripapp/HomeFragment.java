@@ -260,8 +260,8 @@ public class HomeFragment extends Fragment {
         profile_pic.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //if komutu düzgün calısmıyor bir daha bakılmalı! Kullanıcı kendi profiline girerken else aktif olmalı.
-                if(sender !=mAuth.getCurrentUser().getUid() ){
+
+                if(!sender.equals(mAuth.getCurrentUser().getUid()) ){
                     VisitProfileFragment fragment = new VisitProfileFragment(sender);
                     FragmentManager fragmentManager = getFragmentManager();
                     FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
