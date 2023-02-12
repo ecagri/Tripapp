@@ -33,6 +33,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
@@ -67,6 +69,7 @@ public class ProfileFragment extends Fragment {
     private ArrayList<String> likes = new ArrayList<>();
 
     private ArrayList<String> saves = new ArrayList<>();
+
     ImageView showImage;
     private Uri selectedImage;
 
@@ -129,18 +132,8 @@ public class ProfileFragment extends Fragment {
                         else {
                             Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(showImage);
                         }
-                        ArrayList<Map<String, Object>> posts = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("posts");
                         ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followers");
                         ArrayList<Map<String, Object>> followings = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followings");
-                        if(posts != null) {
-                            ((TextView) view.findViewById(R.id.textView7)).setText(posts.size()+"");
-                            for (int i = posts.size() - 1; i >= 0; i--) {
-                                String post_description = posts.get(i).get("post_description").toString();
-                                String post_picture = posts.get(i).get("post_picture").toString();
-                                String post_id = posts.get(i).get("id").toString();
-                                createPost(username, post_description, profile_picture, post_picture, post_id);
-                            }
-                        }
 
                         if(followers != null){
                             ((TextView) view.findViewById(R.id.textView9)).setText(followers.size()+"");
@@ -148,10 +141,25 @@ public class ProfileFragment extends Fragment {
                         if(followings != null){
                             ((TextView) view.findViewById(R.id.textView8)).setText(followings.size()+"");
                         }
+                        db.collection("posts").whereEqualTo("sender", mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                if(task.isSuccessful()){
+                                    for (QueryDocumentSnapshot document : task.getResult()) {
+                                        String post_description = document.getString("post_description");
+                                        String post_picture = document.getString("post_picture");
+                                        String post_id = document.getString("id");
+                                        createPost(username, post_description, profile_picture, post_picture, post_id);
+                                    }
+                                }
+                            }
+                        });
                     }
                 }
             }
         });
+
+
 
         view.findViewById(R.id.imageButton2).setOnClickListener(view1 -> {
             PostDesignFragment fragment = new PostDesignFragment();
@@ -209,29 +217,25 @@ public class ProfileFragment extends Fragment {
         TextView username = new TextView(getActivity());
         TextView post_text = new TextView(getActivity());
 
-        db.collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        db.collection("posts").document(postId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 DocumentSnapshot documentSnapshot = task.getResult();
-                String name = documentSnapshot.getData().get("username").toString();
                 likes = (ArrayList<String>) documentSnapshot.getData().get("like");
                 saves = (ArrayList<String>) documentSnapshot.getData().get("save");
 
-                if (likes != null && likes.contains(postId)) {
+                if(likes != null && likes.contains(mAuth.getCurrentUser().getUid())){
                     Glide.with(view).load(R.drawable.baseline_favorite_24).into(fav_button);
                     fav_button.setContentDescription("favved");
                 }
-
                 else{
                     Glide.with(view).load(R.drawable.baseline_favorite_border_24).into(fav_button);
                     fav_button.setContentDescription("notfavved");
                 }
-
-                if (saves != null && saves.contains(postId)) {
+                if (saves != null && saves.contains(mAuth.getCurrentUser().getUid())) {
                     Glide.with(view).load(R.drawable.baseline_download_done_24).into(save_button);
                     save_button.setContentDescription("saved");
                 }
-
                 else{
 
                     Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
@@ -239,19 +243,21 @@ public class ProfileFragment extends Fragment {
                 }
             }
         });
+
         fav_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if(fav_button.getContentDescription() == "notfavved") {
                     Glide.with(view).load(R.drawable.baseline_favorite_24).into(fav_button);
                     fav_button.setContentDescription("favved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("like", FieldValue.arrayUnion(postId));
+                    db.collection("posts").document(postId).update("like", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid()));
 
                 }
                 else {
                     Glide.with(view).load(R.drawable.baseline_favorite_border_24).into(fav_button);
                     fav_button.setContentDescription("notfavved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("like", FieldValue.arrayRemove(postId));
+                    db.collection("posts").document(postId).update("like", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid()));
+
                 }
             }
         });
@@ -262,13 +268,12 @@ public class ProfileFragment extends Fragment {
                 if(save_button.getContentDescription() == "notsaved"){
                     Glide.with(view).load(R.drawable.baseline_download_done_24).into(save_button);
                     save_button.setContentDescription("saved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayUnion(postId));
+                    db.collection("posts").document(postId).update("save", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid()));
                 }
                 else{
                     Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
                     save_button.setContentDescription("notsaved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayRemove(postId));
-
+                    db.collection("posts").document(postId).update("save", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid()));
                 }
             }
         });

@@ -22,6 +22,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -36,7 +37,6 @@ import com.google.firebase.storage.StorageReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -65,6 +65,7 @@ public class HomeFragment extends Fragment {
     private ArrayList<String> likes = new ArrayList<>();
 
     private ArrayList<String> saves = new ArrayList<>();
+
     LinearLayout linearLayout;
 
     Uri selectedImage;
@@ -125,22 +126,30 @@ public class HomeFragment extends Fragment {
                     for(QueryDocumentSnapshot documentSnapshot: task.getResult()){
                         String username = documentSnapshot.getData().get("username").toString();
                         String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-                        ArrayList<Map<String, Object>> posts = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("posts");
+                        ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
                         if(posts != null) {
-                            for (int i = posts.size() - 1; i >= 0; i--) {
-                                String post_description = posts.get(i).get("post_description").toString();
-                                String post_picture = posts.get(i).get("post_picture").toString();
-                                String post_date = posts.get(i).get("date").toString();
-                                String post_id = posts.get(i).get("id").toString();
-                                postArray.add(new Post(username, profile_picture, post_description, post_picture, post_date, post_id));
+                            for (int i = 0; i < posts.size(); i++) {
+                                db.collection("posts").document(posts.get(i)).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                        if(task.isSuccessful()){
+                                            DocumentSnapshot document = task.getResult();
+                                            String post_description = document.getString("post_description");
+                                            String post_picture = document.getString("post_picture");
+                                            String post_id = document.getString("id");
+                                            String post_date = document.getString("date");
+                                            createPost(username, post_description, profile_picture, post_picture, post_id);
+                                            postArray.add(new Post(username, profile_picture, post_description, post_picture, post_date, post_id));
+                                        }
+                                    }
+                                });
+                            }
+                            Collections.sort(postArray, Collections.reverseOrder());
+                            for(int i = 0; i < postArray.size(); i++){
+                                Post post = postArray.get(i);
+                                createPost(post.getUsername(), post.getDescription(), post.getProfile_picture(), post.getPost_picture(), post.getId());
                             }
                         }
-                    }
-                    Collections.sort(postArray, Collections.reverseOrder());
-
-                    for(int i = 0; i < postArray.size(); i++){
-                        Post post = postArray.get(i);
-                        createPost(post.getUsername(), post.getDescription(), post.getProfile_picture(), post.getPost_picture(), post.getId());
                     }
                 }
             }
@@ -165,29 +174,25 @@ public class HomeFragment extends Fragment {
         TextView username = new TextView(getActivity());
         TextView post_text = new TextView(getActivity());
 
-        db.collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        db.collection("posts").document(postId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 DocumentSnapshot documentSnapshot = task.getResult();
-                String name = documentSnapshot.getData().get("username").toString();
                 likes = (ArrayList<String>) documentSnapshot.getData().get("like");
                 saves = (ArrayList<String>) documentSnapshot.getData().get("save");
 
-                if (likes != null && likes.contains(postId)) {
+                if(likes != null && likes.contains(mAuth.getCurrentUser().getUid())){
                     Glide.with(view).load(R.drawable.baseline_favorite_24).into(fav_button);
                     fav_button.setContentDescription("favved");
                 }
-
                 else{
                     Glide.with(view).load(R.drawable.baseline_favorite_border_24).into(fav_button);
                     fav_button.setContentDescription("notfavved");
                 }
-
-                if (saves != null && saves.contains(postId)) {
+                if (saves != null && saves.contains(mAuth.getCurrentUser().getUid())) {
                     Glide.with(view).load(R.drawable.baseline_download_done_24).into(save_button);
                     save_button.setContentDescription("saved");
                 }
-
                 else{
 
                     Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
@@ -195,19 +200,21 @@ public class HomeFragment extends Fragment {
                 }
             }
         });
+
         fav_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if(fav_button.getContentDescription() == "notfavved") {
                     Glide.with(view).load(R.drawable.baseline_favorite_24).into(fav_button);
                     fav_button.setContentDescription("favved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("like", FieldValue.arrayUnion(postId));
+                    db.collection("posts").document(postId).update("like", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid()));
 
                 }
                 else {
                     Glide.with(view).load(R.drawable.baseline_favorite_border_24).into(fav_button);
                     fav_button.setContentDescription("notfavved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("like", FieldValue.arrayRemove(postId));
+                    db.collection("posts").document(postId).update("like", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid()));
+
                 }
             }
         });
@@ -218,21 +225,21 @@ public class HomeFragment extends Fragment {
                 if(save_button.getContentDescription() == "notsaved"){
                     Glide.with(view).load(R.drawable.baseline_download_done_24).into(save_button);
                     save_button.setContentDescription("saved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayUnion(postId));
+                    db.collection("posts").document(postId).update("save", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid()));
                 }
                 else{
                     Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
                     save_button.setContentDescription("notsaved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayRemove(postId));
-
+                    db.collection("posts").document(postId).update("save", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid()));
                 }
             }
         });
 
         if(!picPost.equals(""))
             Glide.with(view).load(picPost).into(post_pic);
-        if(!profilePicture.equals(""))
-            Glide.with(view).load(profilePicture).circleCrop().into(profile_pic);
+        if(!profilePicture.equals("")) {
+            Glide.with(view).load(profilePicture).diskCacheStrategy(DiskCacheStrategy.NONE).circleCrop().into(profile_pic);
+        }
         else
             Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(profile_pic);
 

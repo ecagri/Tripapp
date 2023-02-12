@@ -19,7 +19,6 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
@@ -27,6 +26,7 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -100,6 +100,7 @@ public class PostDesignFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_post_design, container, false);
         showImage = view.findViewById(R.id.imageView2);
         post_description = view.findViewById(R.id.postDescription);
+        String post_id = UUID.randomUUID().toString();
 
         view.findViewById(R.id.imageButton).setOnClickListener(view1 -> {
             Intent intent = new Intent();
@@ -109,60 +110,62 @@ public class PostDesignFragment extends Fragment {
         });
         view.findViewById(R.id.button4).setOnClickListener(view1 -> {
 
-            db.collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                @Override
-                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                    if(task.isSuccessful()){
-                        DocumentSnapshot documentSnapshot = task.getResult();
-                        if(documentSnapshot.exists()){
-                            post.put("post_description", post_description.getText().toString());
-                            post.put("id", UUID.randomUUID().toString());
-                            post.put("date", LocalDateTime.now().toString());
-                            if(selectedImage != null) {
+            post.put("post_description", post_description.getText().toString());
+            post.put("date", LocalDateTime.now().toString());
+            post.put("id", post_id);
+            post.put("like", new ArrayList<>());
+            post.put("save", new ArrayList<>());
+            post.put("sender", mAuth.getCurrentUser().getUid());
+            if(selectedImage != null) {
 
-                                StorageReference profile_pic = storageRef.child("mobile").child(mAuth.getCurrentUser().getUid()).child(LocalDateTime.now().toString());
-                                profile_pic.putFile(selectedImage).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                StorageReference profile_pic = storageRef.child("mobile").child(mAuth.getCurrentUser().getUid()).child(LocalDateTime.now().toString());
+                profile_pic.putFile(selectedImage).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        profile_pic.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                            @Override
+                            public void onSuccess(Uri uri) {
+                                post.put("post_picture", uri);
+                                db.collection("posts").document(post_id).set(post).addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
-                                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                                        profile_pic.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                    public void onComplete(@NonNull Task<Void> task) {
+                                        db.collection("users").document(mAuth.getCurrentUser().getUid()).update("posts", FieldValue.arrayUnion(post_id)).addOnCompleteListener(new OnCompleteListener<Void>() {
                                             @Override
-                                            public void onSuccess(Uri uri) {
-                                                post.put("post_picture", uri);
-                                                db.collection("users").document(mAuth.getCurrentUser().getUid()).update("posts", FieldValue.arrayUnion(post)).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                    @Override
-                                                    public void onComplete(@NonNull Task<Void> task) {
-                                                        Toast.makeText(getActivity(), "Post is  shared successfully.", Toast.LENGTH_LONG);
-                                                        getFragmentManager().popBackStack();
-                                                        getFragmentManager().beginTransaction().detach(PostDesignFragment.this).attach(PostDesignFragment.this).commit();
-                                                    }
-                                                });
-                                            }
-                                        }).addOnFailureListener(new OnFailureListener() {
-                                            @Override
-                                            public void onFailure(@NonNull Exception e) {
-                                                Toast.makeText(getActivity(), "Post is not shared successfully.", Toast.LENGTH_LONG);
+                                            public void onComplete(@NonNull Task<Void> task) {
+                                                getFragmentManager().popBackStack();
+                                                getFragmentManager().beginTransaction().detach(PostDesignFragment.this).attach(PostDesignFragment.this).commit();
+                                                Toast.makeText(getActivity(), "Post is shared succesfully."+ post_id, Toast.LENGTH_LONG);
+
                                             }
                                         });
                                     }
                                 });
                             }
-                            else {
-                                post.put("post_picture", "");
-
-                                db.collection("users").document(mAuth.getCurrentUser().getUid()).update("posts", FieldValue.arrayUnion(post)).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<Void> task) {
-                                        Toast.makeText(getActivity(), "Post is  shared successfully.", Toast.LENGTH_LONG);
-                                        getFragmentManager().popBackStack();
-                                        getFragmentManager().beginTransaction().detach(PostDesignFragment.this).attach(PostDesignFragment.this).commit();
-                                    }
-                                });
+                        }).addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Toast.makeText(getActivity(), "Post is not shared successfully.", Toast.LENGTH_LONG);
                             }
-                        }
+                        });
                     }
-                }
-            });
-
+                });
+            }
+            else {
+                post.put("post_picture", "");
+                db.collection("posts").document(post_id).set(post).addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        db.collection("users").document(mAuth.getCurrentUser().getUid()).update("posts", FieldValue.arrayUnion(post_id)).addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                Toast.makeText(getActivity(), "Post is shared succesfully.", Toast.LENGTH_LONG);
+                                getFragmentManager().popBackStack();
+                                getFragmentManager().beginTransaction().detach(PostDesignFragment.this).attach(PostDesignFragment.this).commit();
+                            }
+                        });
+                    }
+                });
+            }
         });
         return view;
     }
