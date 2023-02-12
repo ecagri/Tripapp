@@ -4,14 +4,10 @@ import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.cardview.widget.CardView;
-import androidx.fragment.app.Fragment;
-
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +17,10 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.cardview.widget.CardView;
+import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -123,6 +123,52 @@ public class VisitProfileFragment extends Fragment {
         showImage = ((ImageView) view.findViewById(R.id.imageButton));
 
         linearLayout = view.findViewById(R.id.container);
+
+        view.findViewById(R.id.follow_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view2) {
+                TextView follow_button = (TextView) view.findViewById(R.id.follow_button);
+                if(follow_button.getText().equals("Follow")){
+                    follow_button.setText("Following");
+                    follow_button.setBackgroundTintList(ColorStateList.valueOf(Color.BLUE));
+                    TextView followers = (TextView) view.findViewById(R.id.textView9);
+                    followers.setText((Integer.valueOf((String) followers.getText()) + 1)+"");
+
+
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("followings", FieldValue.arrayUnion(sender)).addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            db.collection("users").document(sender).update("followers", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid())).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Void> task) {
+                                    Toast.makeText(getActivity(), "You are following this user now!", Toast.LENGTH_SHORT).show();
+
+                                }
+                            });
+                        }
+                    });
+
+                }
+                else if(follow_button.getText().equals("Following")){
+                    follow_button.setText("Follow");
+                    follow_button.setBackgroundTintList(ColorStateList.valueOf(Color.BLACK));
+                    TextView followers = (TextView) view.findViewById(R.id.textView9);
+                    followers.setText((Integer.valueOf((String) followers.getText()) - 1)+"");
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("followings", FieldValue.arrayRemove(sender)).addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            db.collection("users").document(sender).update("followers", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid())).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Void> task) {
+                                    Toast.makeText(getActivity(), "You are not following this user anymore!", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+        });
+
         context = getContext();
         db.collection("users").document(sender).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
@@ -143,12 +189,20 @@ public class VisitProfileFragment extends Fragment {
                         }
                         ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followers");
                         ArrayList<Map<String, Object>> followings = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followings");
-
+                        ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
                         if(followers != null){
                             ((TextView) view.findViewById(R.id.textView9)).setText(followers.size()+"");
+                            if(followers.contains(mAuth.getCurrentUser().getUid())) {
+                                TextView follow_button = (TextView) view.findViewById(R.id.follow_button);
+                                follow_button.setText("Following");
+                                follow_button.setBackgroundTintList(ColorStateList.valueOf(Color.BLUE));
+                            }
                         }
                         if(followings != null){
                             ((TextView) view.findViewById(R.id.textView8)).setText(followings.size()+"");
+                        }
+                        if(posts != null){
+                            ((TextView) view.findViewById(R.id.textView7)).setText(posts.size()+"");
                         }
                         db.collection("posts").whereEqualTo("sender", sender).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                             @Override
@@ -158,7 +212,8 @@ public class VisitProfileFragment extends Fragment {
                                         String post_description = document.getString("post_description");
                                         String post_picture = document.getString("post_picture");
                                         String post_id = document.getString("id");
-                                        createPost(username, post_description, profile_picture, post_picture, post_id);
+                                        String sender = document.getString("sender");
+                                        Post.createPost(view, getActivity(), db, mAuth, getContext(), getFragmentManager(), username, post_description, profile_picture, post_picture, post_id, sender);
                                     }
                                 }
                             }

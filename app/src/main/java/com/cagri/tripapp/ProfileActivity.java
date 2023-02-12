@@ -1,18 +1,17 @@
 package com.cagri.tripapp;
 
+import android.os.Bundle;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
-import android.os.Bundle;
-import android.util.Log;
-
-import com.cagri.tripapp.databinding.ActivityMainBinding;
 import com.cagri.tripapp.databinding.ActivityProfileBinding;
 
 public class ProfileActivity extends AppCompatActivity {
-    ActivityProfileBinding binding;
+    private ActivityProfileBinding binding;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -114,7 +114,6 @@ public class PostDesignFragment extends Fragment {
             post.put("date", LocalDateTime.now().toString());
             post.put("id", post_id);
             post.put("like", new ArrayList<>());
-            post.put("save", new ArrayList<>());
             post.put("sender", mAuth.getCurrentUser().getUid());
             if(selectedImage != null) {
 
