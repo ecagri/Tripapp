@@ -38,9 +38,6 @@ public class Post implements Comparable{
     private String post_picture;
     private String date;
     private String id;
-
-
-
     private String sender;
 
     public Post(String username, String profile_picture, String description, String post_picture, String date, String id,String sender){

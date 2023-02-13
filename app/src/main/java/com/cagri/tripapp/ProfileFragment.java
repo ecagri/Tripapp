@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -21,13 +22,18 @@ import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.MetadataChanges;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -48,15 +54,9 @@ public class ProfileFragment extends Fragment {
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
-
-    private FirebaseFirestore db = FirebaseFirestore.getInstance();
-
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
-
     private FirebaseStorage storage = FirebaseStorage.getInstance();
-
     private StorageReference storageRef = storage.getReference();
-
     private ImageView showImage;
     private Uri selectedImage;
 
@@ -101,53 +101,123 @@ public class ProfileFragment extends Fragment {
         // Inflate the layout for this fragment
         view = inflater.inflate(R.layout.fragment_profile, container, false);
         showImage = ((ImageView) view.findViewById(R.id.imageButton));
-        db.collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+
+        FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
 
-                if(task.isSuccessful()){
-                    DocumentSnapshot documentSnapshot = task.getResult();
-                    if(documentSnapshot.exists()){
-
-                        String username = documentSnapshot.getData().get("username").toString();
-                        ((TextView)view.findViewById(R.id.textView)).setText("@"+ username);
-                        String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-                        if(!profile_picture.equals("")) {
-                            Glide.with(view).load(profile_picture).circleCrop().into(showImage);
-                        }
-                        else {
-                            Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(showImage);
-                        }
-                        ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followers");
-                        ArrayList<Map<String, Object>> followings = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followings");
-                        ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
-                        if(followers != null){
-                            ((TextView) view.findViewById(R.id.textView9)).setText(followers.size()+"");
-                        }
-                        if(followings != null){
-                            ((TextView) view.findViewById(R.id.textView8)).setText(followings.size()+"");
-                        }
-                        if(posts != null){
-                            ((TextView) view.findViewById(R.id.textView7)).setText(posts.size()+"");
-                        }
-                        db.collection("posts").whereEqualTo("sender", mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                            @Override
-                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                if(task.isSuccessful()){
-                                    for (QueryDocumentSnapshot document : task.getResult()) {
-                                        String post_description = document.getString("post_description");
-                                        String post_picture = document.getString("post_picture");
-                                        String post_id = document.getString("id");
-                                        String sender = document.getString("sender");
-                                        Post.createPost(view, getActivity(), db, mAuth, getContext(), getFragmentManager(), username, post_description, profile_picture, post_picture, post_id, sender);
-                                    }
-                                }
-                            }
-                        });
-                    }
-                }
             }
         });
+
+        FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).addSnapshotListener(MetadataChanges.EXCLUDE, new EventListener<DocumentSnapshot>() {
+            @Override
+            public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException error) {
+                if(((LinearLayout) view.findViewById(R.id.container)).getChildCount() > 3)
+                    ((LinearLayout) view.findViewById(R.id.container)).removeViews(4, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 4);
+
+
+                String username = documentSnapshot.getData().get("username").toString();
+                ((TextView)view.findViewById(R.id.textView)).setText("@" + username);
+                String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
+
+                if(!profile_picture.equals("")) {
+                    Glide.get(getContext()).clearMemory();
+                    Glide.with(view).load(profile_picture).circleCrop().into(showImage);
+                }
+                else {
+                    Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(showImage);
+                }
+
+                ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followers");
+                ArrayList<Map<String, Object>> followings = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followings");
+                ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
+                if(followers != null){
+                    ((TextView) view.findViewById(R.id.textView9)).setText(followers.size()+"");
+                }
+                if(followings != null){
+                    ((TextView) view.findViewById(R.id.textView8)).setText(followings.size()+"");
+                }
+                if(posts != null){
+                    ((TextView) view.findViewById(R.id.textView7)).setText(posts.size()+"");
+                }
+                FirebaseFirestore.getInstance().collection("posts").whereEqualTo("sender", mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if(task.isSuccessful()){
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                String post_description = document.getString("post_description");
+                                String post_picture = document.getString("post_picture");
+                                String post_id = document.getString("id");
+                                String sender = document.getString("sender");
+                                Post.createPost(view, getActivity(), FirebaseFirestore.getInstance(), mAuth, getContext(), getFragmentManager(), username, post_description, profile_picture, post_picture, post_id, sender);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        ((BottomNavigationView) view.findViewById(R.id.segment)).setOnItemSelectedListener(item -> {
+            ((LinearLayout) view.findViewById(R.id.container)).removeViews(4, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 4);
+            FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    switch (item.getItemId()) {
+                        case R.id.Posts:
+                            String username = documentSnapshot.getData().get("username").toString();
+                            String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
+                            FirebaseFirestore.getInstance().collection("posts").whereEqualTo("sender", mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                @Override
+                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                    if (task.isSuccessful()) {
+                                        for (QueryDocumentSnapshot document : task.getResult()) {
+                                            String post_description = document.getString("post_description");
+                                            String post_picture = document.getString("post_picture");
+                                            String post_id = document.getString("id");
+                                            String sender = document.getString("sender");
+                                            Post.createPost(view, getActivity(), FirebaseFirestore.getInstance(), mAuth, getContext(), getFragmentManager(), username, post_description, profile_picture, post_picture, post_id, sender);
+                                        }
+                                    }
+                                }
+                            });
+                            break;
+                        case R.id.Saves:
+                            ArrayList<String> saves = (ArrayList<String>) documentSnapshot.getData().get("save");
+                            if (saves != null) {
+                                for (int i = 0; i < saves.size(); i++) {
+                                    FirebaseFirestore.getInstance().collection("posts").whereEqualTo("id", saves.get(i)).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                            if (task.isSuccessful()) {
+                                                for (QueryDocumentSnapshot document : task.getResult()) {
+                                                    String post_description = document.getString("post_description");
+                                                    String post_picture = document.getString("post_picture");
+                                                    String post_id = document.getString("id");
+                                                    String sender = document.getString("sender");
+
+                                                    FirebaseFirestore.getInstance().collection("users").document(sender).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                                        @Override
+                                                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                                            if (task.isSuccessful()) {
+                                                                DocumentSnapshot documentSnapshot1 = task.getResult();
+                                                                String username = documentSnapshot1.getData().get("username").toString();
+                                                                String profile_picture = documentSnapshot1.getData().get("profile_pic").toString();
+                                                                Post.createPost(view, getActivity(), FirebaseFirestore.getInstance(), mAuth, getContext(), getFragmentManager(), username, post_description, profile_picture, post_picture, post_id, sender);
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                            break;
+                        }
+                    }
+                });
+                return true;
+            });
 
         view.findViewById(R.id.imageButton2).setOnClickListener(view1 -> {
             PostDesignFragment fragment = new PostDesignFragment();
@@ -174,14 +244,16 @@ public class ProfileFragment extends Fragment {
 
             if (selectedImage != null) {
                 StorageReference profile_pic = storageRef.child(mAuth.getCurrentUser().getUid());
-                profile_pic.putFile(selectedImage);
-                profile_pic.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                profile_pic.putFile(selectedImage).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                     @Override
-                    public void onSuccess(Uri uri) {
-                        db.collection("users").document(mAuth.getCurrentUser().getUid()).update(
-                                "profile_pic", uri);
-                        startActivity(new Intent(getActivity(), ProfileActivity.class));
-                        getActivity().finish();
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        profile_pic.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                            @Override
+                            public void onSuccess(Uri uri) {
+                                FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).update(
+                                        "profile_pic", uri);
+                            }
+                        });
                     }
                 });
             }

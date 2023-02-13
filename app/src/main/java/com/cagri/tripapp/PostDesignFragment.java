@@ -109,7 +109,6 @@ public class PostDesignFragment extends Fragment {
             startActivityForResult(Intent.createChooser(intent, "Select Picture"), 200);
         });
         view.findViewById(R.id.button4).setOnClickListener(view1 -> {
-
             post.put("post_description", post_description.getText().toString());
             post.put("date", LocalDateTime.now().toString());
             post.put("id", post_id);
