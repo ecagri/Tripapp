@@ -3,8 +3,6 @@ package com.cagri.tripapp;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 
-import android.app.Activity;
-import android.content.Context;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.View;
@@ -93,23 +91,28 @@ public class Post implements Comparable{
         return this.id.equals(((Post) obj).getId());
     }
 
-    public static void createPost(View view, Activity activity, FirebaseFirestore db, FirebaseAuth mAuth, Context context, FragmentManager fragmentManager, String nameOfUser, String postDescription, String profilePicture, String picPost, String postId, String sender){
-        LinearLayout linearLayout = view.findViewById(R.id.container);
-        LinearLayout ll = new LinearLayout(activity);
-        LinearLayout ll2 = new LinearLayout(activity);
-        LinearLayout ll3 = new LinearLayout(activity);
-        ImageView profile_pic = new ImageView(activity);
-        ImageView post_pic = new ImageView(activity);
-        ImageButton fav_button = new ImageButton(activity);
-        ImageButton save_button = new ImageButton(activity);
-        CardView frame = new CardView(activity);
-        View line = new View(activity);
-        View space = new View(activity);
-        View space2 = new View(activity);
-        TextView username = new TextView(activity);
-        TextView post_text = new TextView(activity);
+    public static void createPost(View view, FragmentManager fragmentManager, Post post){
 
-        db.collection("posts").document(postId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+
+        LinearLayout linearLayout = view.findViewById(R.id.container);
+        LinearLayout ll = new LinearLayout(view.getContext());
+        LinearLayout ll2 = new LinearLayout(view.getContext());
+        LinearLayout ll3 = new LinearLayout(view.getContext());
+        ImageView profile_pic = new ImageView(view.getContext());
+        ImageView post_pic = new ImageView(view.getContext());
+        ImageButton fav_button = new ImageButton(view.getContext());
+        ImageButton save_button = new ImageButton(view.getContext());
+        CardView frame = new CardView(view.getContext());
+        View line = new View(view.getContext());
+        View space = new View(view.getContext());
+        View space2 = new View(view.getContext());
+        TextView username = new TextView(view.getContext());
+        TextView post_text = new TextView(view.getContext());
+
+        db.collection("posts").document(post.getId()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 DocumentSnapshot documentSnapshot = task.getResult();
@@ -131,7 +134,7 @@ public class Post implements Comparable{
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 DocumentSnapshot documentSnapshot = task.getResult();
                 ArrayList<String> save = (ArrayList<String>) documentSnapshot.getData().get("save");
-                if(save != null && save.contains(postId)){
+                if(save != null && save.contains(post.getId())){
                     Glide.with(view).load(R.drawable.baseline_download_done_24).into(save_button);
                     save_button.setContentDescription("saved");
                 }
@@ -148,14 +151,14 @@ public class Post implements Comparable{
                 if(fav_button.getContentDescription() == "notfavved") {
                     Glide.with(view).load(R.drawable.baseline_favorite_24).into(fav_button);
                     fav_button.setContentDescription("favved");
-                    db.collection("posts").document(postId).update("like", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid()));
-                    Toast.makeText(context, "Liked", Toast.LENGTH_SHORT).show();
+                    db.collection("posts").document(post.getId()).update("like", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid()));
+                    Toast.makeText(view.getContext(), "Liked", Toast.LENGTH_SHORT).show();
 
                 }
                 else {
                     Glide.with(view).load(R.drawable.baseline_favorite_border_24).into(fav_button);
                     fav_button.setContentDescription("notfavved");
-                    db.collection("posts").document(postId).update("like", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid()));
+                    db.collection("posts").document(post.getId()).update("like", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid()));
 
                 }
             }
@@ -167,22 +170,22 @@ public class Post implements Comparable{
                 if(save_button.getContentDescription() == "notsaved"){
                     Glide.with(view).load(R.drawable.baseline_download_done_24).into(save_button);
                     save_button.setContentDescription("saved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayUnion(postId));
-                    Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show();
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayUnion(post.getId()));
+                    Toast.makeText(view.getContext(), "Saved", Toast.LENGTH_SHORT).show();
                 }
                 else{
                     Glide.with(view).load(R.drawable.baseline_download_24).into(save_button);
                     save_button.setContentDescription("notsaved");
-                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayRemove(postId));
+                    db.collection("users").document(mAuth.getCurrentUser().getUid()).update("save", FieldValue.arrayRemove(post.getId()));
 
                 }
             }
         });
 
-        if(!picPost.equals(""))
-            Glide.with(view).load(picPost).into(post_pic);
-        if(!profilePicture.equals("")) {
-            Glide.with(view).load(profilePicture).diskCacheStrategy(DiskCacheStrategy.NONE).circleCrop().into(profile_pic);
+        if(!post.getPost_picture().equals(""))
+            Glide.with(view).load(post.getPost_picture()).into(post_pic);
+        if(!post.getProfile_picture().equals("")) {
+            Glide.with(view).load(post.getProfile_picture()).diskCacheStrategy(DiskCacheStrategy.NONE).circleCrop().into(profile_pic);
         }
         else
             Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(profile_pic);
@@ -190,8 +193,8 @@ public class Post implements Comparable{
         profile_pic.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(!sender.equals(mAuth.getCurrentUser().getUid()) ){
-                    VisitProfileFragment fragment = new VisitProfileFragment(sender);
+                if(!post.getSender().equals(mAuth.getCurrentUser().getUid()) ){
+                    VisitProfileFragment fragment = new VisitProfileFragment(post.getSender());
                     FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
                     fragmentTransaction.replace(R.id.frameLayout, fragment);
                     fragmentTransaction.addToBackStack(null);
@@ -209,10 +212,10 @@ public class Post implements Comparable{
 
         fav_button.setBackgroundColor(Color.TRANSPARENT);
         save_button.setBackgroundColor(Color.TRANSPARENT);
-        username.setText(nameOfUser);
+        username.setText(post.getUsername());
         username.setTextSize(20);
         username.setTextColor(Color.BLACK);
-        post_text.setText(postDescription);
+        post_text.setText(post.getDescription());
         post_text.setTextSize(20);
         line.setBackgroundColor(Color.BLACK);
         space.setBackgroundColor(Color.WHITE);
@@ -221,7 +224,7 @@ public class Post implements Comparable{
         frame.addView(post_pic, MATCH_PARENT, WRAP_CONTENT);
         frame.setRadius(20);
         ll3.addView(username, WRAP_CONTENT, 100);
-        if(!postDescription.equals(""))
+        if(!post.getDescription().equals(""))
             ll3.addView(post_text);
         ll3.addView(frame, MATCH_PARENT, WRAP_CONTENT);
         ll3.addView(ll2);

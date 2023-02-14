@@ -131,7 +131,8 @@ public class HomeFragment extends Fragment {
                                             String post_id = document.getString("id");
                                             String post_date = document.getString("date");
                                             String sender = document.getString("sender");
-                                            Post.createPost(view, getActivity(), db, mAuth, getContext(), getFragmentManager(), username, post_description, profile_picture, post_picture, post_id, sender);
+                                            Post post = new Post(username, profile_picture, post_description, post_picture, post_date, post_id, sender);
+                                            Post.createPost(view, getFragmentManager(), post);
                                             postArray.add(new Post(username, profile_picture, post_description, post_picture, post_date, post_id,sender));
                                         }
                                     }

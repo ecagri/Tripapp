@@ -115,7 +115,6 @@ public class ProfileFragment extends Fragment {
                 if(((LinearLayout) view.findViewById(R.id.container)).getChildCount() > 3)
                     ((LinearLayout) view.findViewById(R.id.container)).removeViews(4, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 4);
 
-
                 String username = documentSnapshot.getData().get("username").toString();
                 ((TextView)view.findViewById(R.id.textView)).setText("@" + username);
                 String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
@@ -140,20 +139,13 @@ public class ProfileFragment extends Fragment {
                 if(posts != null){
                     ((TextView) view.findViewById(R.id.textView7)).setText(posts.size()+"");
                 }
-                FirebaseFirestore.getInstance().collection("posts").whereEqualTo("sender", mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if(task.isSuccessful()){
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                String post_description = document.getString("post_description");
-                                String post_picture = document.getString("post_picture");
-                                String post_id = document.getString("id");
-                                String sender = document.getString("sender");
-                                Post.createPost(view, getActivity(), FirebaseFirestore.getInstance(), mAuth, getContext(), getFragmentManager(), username, post_description, profile_picture, post_picture, post_id, sender);
-                            }
-                        }
-                    }
-                });
+
+                if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Posts){
+                    showPosts(username, profile_picture);
+                }
+                else if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Saves){
+                    showSaves(documentSnapshot);
+                }
             }
         });
 
@@ -166,52 +158,10 @@ public class ProfileFragment extends Fragment {
                         case R.id.Posts:
                             String username = documentSnapshot.getData().get("username").toString();
                             String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-                            FirebaseFirestore.getInstance().collection("posts").whereEqualTo("sender", mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                @Override
-                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                    if (task.isSuccessful()) {
-                                        for (QueryDocumentSnapshot document : task.getResult()) {
-                                            String post_description = document.getString("post_description");
-                                            String post_picture = document.getString("post_picture");
-                                            String post_id = document.getString("id");
-                                            String sender = document.getString("sender");
-                                            Post.createPost(view, getActivity(), FirebaseFirestore.getInstance(), mAuth, getContext(), getFragmentManager(), username, post_description, profile_picture, post_picture, post_id, sender);
-                                        }
-                                    }
-                                }
-                            });
+                            showPosts(username, profile_picture);
                             break;
                         case R.id.Saves:
-                            ArrayList<String> saves = (ArrayList<String>) documentSnapshot.getData().get("save");
-                            if (saves != null) {
-                                for (int i = 0; i < saves.size(); i++) {
-                                    FirebaseFirestore.getInstance().collection("posts").whereEqualTo("id", saves.get(i)).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                        @Override
-                                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                            if (task.isSuccessful()) {
-                                                for (QueryDocumentSnapshot document : task.getResult()) {
-                                                    String post_description = document.getString("post_description");
-                                                    String post_picture = document.getString("post_picture");
-                                                    String post_id = document.getString("id");
-                                                    String sender = document.getString("sender");
-
-                                                    FirebaseFirestore.getInstance().collection("users").document(sender).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                                                        @Override
-                                                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                                            if (task.isSuccessful()) {
-                                                                DocumentSnapshot documentSnapshot1 = task.getResult();
-                                                                String username = documentSnapshot1.getData().get("username").toString();
-                                                                String profile_picture = documentSnapshot1.getData().get("profile_pic").toString();
-                                                                Post.createPost(view, getActivity(), FirebaseFirestore.getInstance(), mAuth, getContext(), getFragmentManager(), username, post_description, profile_picture, post_picture, post_id, sender);
-                                                            }
-                                                        }
-                                                    });
-                                                }
-                                            }
-                                        }
-                                    });
-                                }
-                            }
+                            showSaves(documentSnapshot);
                             break;
                         }
                     }
@@ -259,5 +209,60 @@ public class ProfileFragment extends Fragment {
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void showPosts(String username, String profile_picture){
+        FirebaseFirestore.getInstance().collection("posts").whereEqualTo("sender", mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                if(task.isSuccessful()){
+                    for (QueryDocumentSnapshot document : task.getResult()) {
+                        String post_description = document.getString("post_description");
+                        String post_picture = document.getString("post_picture");
+                        String post_id = document.getString("id");
+                        String sender = document.getString("sender");
+                        String date = document.getString("date");
+                        Post post = new Post(username, profile_picture, post_description, post_picture, date, post_id, sender);
+                        Post.createPost(view, getFragmentManager(), post);
+                    }
+                }
+            }
+        });
+    }
+
+    private void showSaves(DocumentSnapshot documentSnapshot){
+        ArrayList<String> saves = (ArrayList<String>) documentSnapshot.getData().get("save");
+        if (saves != null) {
+            for (int i = 0; i < saves.size(); i++) {
+                FirebaseFirestore.getInstance().collection("posts").whereEqualTo("id", saves.get(i)).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                String post_description = document.getString("post_description");
+                                String post_picture = document.getString("post_picture");
+                                String post_id = document.getString("id");
+                                String sender = document.getString("sender");
+                                String date = document.getString("date");
+
+                                FirebaseFirestore.getInstance().collection("users").document(sender).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                        if (task.isSuccessful()) {
+                                            DocumentSnapshot documentSnapshot1 = task.getResult();
+                                            String username = documentSnapshot1.getData().get("username").toString();
+                                            String profile_picture = documentSnapshot1.getData().get("profile_pic").toString();
+                                            Post post = new Post(username, profile_picture, post_description, post_picture, date, post_id, sender);
+
+                                            Post.createPost(view, getFragmentManager(), post);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+        }
     }
 }
