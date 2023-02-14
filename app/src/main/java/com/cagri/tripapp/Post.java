@@ -5,7 +5,10 @@ import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageButton;
@@ -17,7 +20,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
-import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -95,7 +97,6 @@ public class Post implements Comparable{
     }
 
     public static void createPost(View view, FragmentManager fragmentManager, Post post){
-
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
@@ -217,7 +218,15 @@ public class Post implements Comparable{
             }
         });
 
-
+        post_pic.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view1) {
+                Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.parse(post.getPost_picture()), "image/*");
+                view.getContext().startActivity(intent);
+            }
+        });
 
         fav_button.setBackgroundColor(Color.TRANSPARENT);
         save_button.setBackgroundColor(Color.TRANSPARENT);
@@ -249,6 +258,7 @@ public class Post implements Comparable{
         linearLayout.addView(space, MATCH_PARENT, 20);
         linearLayout.addView(line, MATCH_PARENT, 5);
         linearLayout.setHorizontalGravity(Gravity.RIGHT);
+
 
         if(post.getSender().equals(mAuth.getCurrentUser().getUid()) ){
             ImageButton delete_button = new ImageButton(view.getContext());

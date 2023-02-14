@@ -18,22 +18,27 @@ public class ProfileActivity extends AppCompatActivity {
         binding = ActivityProfileBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         replaceFragment(new ProfileFragment());
+        ProfileFragment profileFragment = new ProfileFragment();
+        HomeFragment homeFragment = new HomeFragment();
+        MessagesFragment messagesFragment = new MessagesFragment();
+        NotificationsFragment notificationsFragment = new NotificationsFragment();
+        SettingsFragment settingsFragment = new SettingsFragment();
         binding.bottomNavigationView.setOnItemSelectedListener(item -> {
             switch (item.getItemId()){
                 case R.id.Home:
-                    replaceFragment(new HomeFragment());
+                    replaceFragment(homeFragment);
                     break;
                 case R.id.Messages:
-                    replaceFragment(new MessagesFragment());
+                    replaceFragment(messagesFragment);
                     break;
                 case R.id.Profile:
-                    replaceFragment(new ProfileFragment());
+                    replaceFragment(profileFragment);
                     break;
                 case R.id.Notifications:
-                    replaceFragment(new NotificationsFragment());
+                    replaceFragment(notificationsFragment);
                     break;
                 case R.id.Settings:
-                    replaceFragment(new SettingsFragment());
+                    replaceFragment(settingsFragment);
                     break;
             }
             return true;

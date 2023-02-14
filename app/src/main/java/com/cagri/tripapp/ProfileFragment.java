@@ -12,7 +12,6 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -88,7 +87,6 @@ public class ProfileFragment extends Fragment {
         return fragment;
     }
 
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -96,29 +94,14 @@ public class ProfileFragment extends Fragment {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
-
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        view = inflater.inflate(R.layout.fragment_profile, container, false);
-        showImage = ((ImageView) view.findViewById(R.id.imageButton));
-        context=getContext();
-        FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-            @Override
-            public void onSuccess(DocumentSnapshot documentSnapshot) {
-
-            }
-        });
-
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).addSnapshotListener(MetadataChanges.EXCLUDE, new EventListener<DocumentSnapshot>() {
             @Override
             public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException error) {
-                if(((LinearLayout) view.findViewById(R.id.container)).getChildCount() > 3)
-                    ((LinearLayout) view.findViewById(R.id.container)).removeViews(4, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 4);
-
+                ((LinearLayout) view.findViewById(R.id.container)).removeViews(3, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 3);
                 String username = documentSnapshot.getData().get("username").toString();
                 ((TextView)view.findViewById(R.id.textView)).setText("@" + username);
                 String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
@@ -145,7 +128,6 @@ public class ProfileFragment extends Fragment {
                 }
 
                 if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Posts){
-
                     showPosts(username, profile_picture);
                 }
                 else if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Saves){
@@ -153,9 +135,20 @@ public class ProfileFragment extends Fragment {
                 }
             }
         });
+        super.onViewCreated(view, savedInstanceState);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        view = inflater.inflate(R.layout.fragment_profile, container, false);
+        ((LinearLayout) view.findViewById(R.id.container)).removeViews(3, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 3);
+        showImage = ((ImageView) view.findViewById(R.id.imageButton));
+        context=getContext();
 
         ((BottomNavigationView) view.findViewById(R.id.segment)).setOnItemSelectedListener(item -> {
-            ((LinearLayout) view.findViewById(R.id.container)).removeViews(4, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 4);
+            ((LinearLayout) view.findViewById(R.id.container)).removeViews(3, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 3);
             FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                 @Override
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -163,7 +156,6 @@ public class ProfileFragment extends Fragment {
                         case R.id.Posts:
                             String username = documentSnapshot.getData().get("username").toString();
                             String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-
                             showPosts(username, profile_picture);
                             break;
                         case R.id.Saves:
@@ -172,8 +164,9 @@ public class ProfileFragment extends Fragment {
                         }
                     }
                 });
-                return true;
-            });
+            return true;
+        });
+
 
         view.findViewById(R.id.imageButton2).setOnClickListener(view1 -> {
             PostDesignFragment fragment = new PostDesignFragment();
@@ -222,6 +215,7 @@ public class ProfileFragment extends Fragment {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                 if(task.isSuccessful()){
+                    ((LinearLayout) view.findViewById(R.id.container)).removeViews(3, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 3);
                     for (QueryDocumentSnapshot document : task.getResult()) {
                         String post_description = document.getString("post_description");
                         String post_picture = document.getString("post_picture");
@@ -243,6 +237,7 @@ public class ProfileFragment extends Fragment {
                 FirebaseFirestore.getInstance().collection("posts").whereEqualTo("id", saves.get(i)).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        ((LinearLayout) view.findViewById(R.id.container)).removeViews(3, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 3);
                         if (task.isSuccessful()) {
                             for (QueryDocumentSnapshot document : task.getResult()) {
                                 String post_description = document.getString("post_description");

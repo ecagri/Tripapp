@@ -10,6 +10,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -19,6 +20,8 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.MetadataChanges;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
@@ -27,6 +30,7 @@ import com.google.firebase.storage.StorageReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 /**
  * A simple {@link Fragment} subclass.
  * Use the {@link HomeFragment#newInstance} factory method to
@@ -93,6 +97,43 @@ public class HomeFragment extends Fragment {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+
+        db.collection("users").addSnapshotListener(MetadataChanges.EXCLUDE, new com.google.firebase.firestore.EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
+                ((LinearLayout) view.findViewById(R.id.container)).removeAllViews();
+                List<Post> postArray = new ArrayList<>();
+                for(QueryDocumentSnapshot documentSnapshot: value){
+                    String username = documentSnapshot.getData().get("username").toString();
+                    String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
+                    ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
+                    if(posts != null) {
+                        for (int i = 0; i < posts.size(); i++) {
+                            db.collection("posts").document(posts.get(i)).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                @Override
+                                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                    if(task.isSuccessful()){
+                                        DocumentSnapshot document = task.getResult();
+                                        String post_description = document.getString("post_description");
+                                        String post_picture = document.getString("post_picture");
+                                        String post_id = document.getString("id");
+                                        String post_date = document.getString("date");
+                                        String sender = document.getString("sender");
+                                        Post post = new Post(username, profile_picture, post_description, post_picture, post_date, post_id, sender);
+                                        Post.createPost(view, getFragmentManager(), post);
+                                        postArray.add(new Post(username, profile_picture, post_description, post_picture, post_date, post_id,sender));
+                                    }
+                                }
+                            });
+                        }
+                        Collections.sort(postArray, Collections.reverseOrder());
+                        for(int i = 0; i < postArray.size(); i++){
+                            Post post = postArray.get(i);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     @Override
@@ -109,44 +150,6 @@ public class HomeFragment extends Fragment {
             fragmentTransaction.commit();
         });
 
-        context=getContext();
-        db.collection("users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                if(task.isSuccessful()){
-                    List<Post> postArray = new ArrayList<>();
-                    for(QueryDocumentSnapshot documentSnapshot: task.getResult()){
-                        String username = documentSnapshot.getData().get("username").toString();
-                        String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-                        ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
-                        if(posts != null) {
-                            for (int i = 0; i < posts.size(); i++) {
-                                db.collection("posts").document(posts.get(i)).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                        if(task.isSuccessful()){
-                                            DocumentSnapshot document = task.getResult();
-                                            String post_description = document.getString("post_description");
-                                            String post_picture = document.getString("post_picture");
-                                            String post_id = document.getString("id");
-                                            String post_date = document.getString("date");
-                                            String sender = document.getString("sender");
-                                            Post post = new Post(username, profile_picture, post_description, post_picture, post_date, post_id, sender);
-                                            Post.createPost(view, getFragmentManager(), post);
-                                            postArray.add(new Post(username, profile_picture, post_description, post_picture, post_date, post_id,sender));
-                                        }
-                                    }
-                                });
-                            }
-                            Collections.sort(postArray, Collections.reverseOrder());
-                            for(int i = 0; i < postArray.size(); i++){
-                                Post post = postArray.get(i);
-                            }
-                        }
-                    }
-                }
-            }
-        });
         return view;
     }
 }
