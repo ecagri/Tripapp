@@ -3,6 +3,8 @@ package com.cagri.tripapp;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.View;
@@ -15,6 +17,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -105,6 +108,7 @@ public class Post implements Comparable{
         ImageView post_pic = new ImageView(view.getContext());
         ImageButton fav_button = new ImageButton(view.getContext());
         ImageButton save_button = new ImageButton(view.getContext());
+
         CardView frame = new CardView(view.getContext());
         View line = new View(view.getContext());
         View space = new View(view.getContext());
@@ -112,11 +116,14 @@ public class Post implements Comparable{
         TextView username = new TextView(view.getContext());
         TextView post_text = new TextView(view.getContext());
 
+
         db.collection("posts").document(post.getId()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 DocumentSnapshot documentSnapshot = task.getResult();
                 ArrayList<String> likes = (ArrayList<String>) documentSnapshot.getData().get("like");
+
+
 
                 if(likes != null && likes.contains(mAuth.getCurrentUser().getUid())){
                     Glide.with(view).load(R.drawable.baseline_favorite_24).into(fav_button);
@@ -210,6 +217,8 @@ public class Post implements Comparable{
             }
         });
 
+
+
         fav_button.setBackgroundColor(Color.TRANSPARENT);
         save_button.setBackgroundColor(Color.TRANSPARENT);
         username.setText(post.getUsername());
@@ -240,5 +249,40 @@ public class Post implements Comparable{
         linearLayout.addView(space, MATCH_PARENT, 20);
         linearLayout.addView(line, MATCH_PARENT, 5);
         linearLayout.setHorizontalGravity(Gravity.RIGHT);
+
+        if(post.getSender().equals(mAuth.getCurrentUser().getUid()) ){
+            ImageButton delete_button = new ImageButton(view.getContext());
+            Glide.with(view).load(R.drawable.baseline_delete_24).into(delete_button);
+            delete_button.setBackgroundColor(Color.TRANSPARENT);
+            ll2.addView(delete_button,100,100);
+
+            delete_button.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            switch (which){
+                                case DialogInterface.BUTTON_POSITIVE: {
+                                    db.collection("posts").document(post.getId()).delete();
+                                    db.collection("users").document(post.sender).update("posts", FieldValue.arrayRemove(post.getId()));
+                                }
+                                    break;
+
+                                case DialogInterface.BUTTON_NEGATIVE:
+                                    //No button clicked
+                                    break;
+                            }
+                        }
+                    };
+
+                    AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
+                    builder.setMessage("Are you sure you want to delete this post?").setPositiveButton("Yes", dialogClickListener)
+                            .setNegativeButton("No", dialogClickListener).show();
+
+                }
+            });
+        }
+
     }
 }

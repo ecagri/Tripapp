@@ -2,6 +2,7 @@ package com.cagri.tripapp;
 
 import static android.app.Activity.RESULT_OK;
 
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -11,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -60,7 +62,7 @@ public class ProfileFragment extends Fragment {
     private ImageView showImage;
     private Uri selectedImage;
 
-
+    Context context;
     private View view;
 
     public ProfileFragment() {
@@ -86,6 +88,7 @@ public class ProfileFragment extends Fragment {
         return fragment;
     }
 
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -93,6 +96,7 @@ public class ProfileFragment extends Fragment {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+
     }
 
     @Override
@@ -101,7 +105,7 @@ public class ProfileFragment extends Fragment {
         // Inflate the layout for this fragment
         view = inflater.inflate(R.layout.fragment_profile, container, false);
         showImage = ((ImageView) view.findViewById(R.id.imageButton));
-
+        context=getContext();
         FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
@@ -141,6 +145,7 @@ public class ProfileFragment extends Fragment {
                 }
 
                 if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Posts){
+
                     showPosts(username, profile_picture);
                 }
                 else if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Saves){
@@ -158,6 +163,7 @@ public class ProfileFragment extends Fragment {
                         case R.id.Posts:
                             String username = documentSnapshot.getData().get("username").toString();
                             String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
+
                             showPosts(username, profile_picture);
                             break;
                         case R.id.Saves:
