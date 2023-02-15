@@ -114,6 +114,7 @@ public class PostDesignFragment extends Fragment {
             post.put("id", post_id);
             post.put("like", new ArrayList<>());
             post.put("sender", mAuth.getCurrentUser().getUid());
+            post.put("seen", false);
             if(selectedImage != null) {
 
                 StorageReference profile_pic = storageRef.child("mobile").child(mAuth.getCurrentUser().getUid()).child(LocalDateTime.now().toString());

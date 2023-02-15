@@ -17,6 +17,7 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -59,6 +60,8 @@ public class HomeFragment extends Fragment {
 
     private ArrayList<String> saves = new ArrayList<>();
 
+    private BottomNavigationView bottomNavigationView;
+
     LinearLayout linearLayout;
 
     Uri selectedImage;
@@ -70,6 +73,10 @@ public class HomeFragment extends Fragment {
 
     public HomeFragment() {
         // Required empty public constructor
+    }
+
+    public HomeFragment(BottomNavigationView bottomNavigationView){
+        this.bottomNavigationView = bottomNavigationView;
     }
 
     /**
@@ -119,9 +126,19 @@ public class HomeFragment extends Fragment {
                                         String post_id = document.getString("id");
                                         String post_date = document.getString("date");
                                         String sender = document.getString("sender");
+                                        boolean seen = (boolean) document.getData().get("seen");
+                                        if(seen == false){
+                                            bottomNavigationView.getOrCreateBadge(R.id.Home);
+                                        }
                                         Post post = new Post(username, profile_picture, post_description, post_picture, post_date, post_id, sender);
                                         Post.createPost(view, getFragmentManager(), post);
                                         postArray.add(new Post(username, profile_picture, post_description, post_picture, post_date, post_id,sender));
+                                        db.collection("posts").document(post_id).update("seen", true).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                            @Override
+                                            public void onComplete(@NonNull Task<Void> task) {
+
+                                            }
+                                        });
                                     }
                                 }
                             });
@@ -141,6 +158,7 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         view = inflater.inflate(R.layout.fragment_home, container, false);
+        bottomNavigationView.removeBadge(R.id.Home);
         view.findViewById(R.id.imageButton2).setOnClickListener(view1 -> {
             PostDesignFragment fragment = new PostDesignFragment();
             FragmentManager fragmentManager = getFragmentManager();

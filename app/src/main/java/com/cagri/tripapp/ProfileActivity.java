@@ -8,6 +8,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.cagri.tripapp.databinding.ActivityProfileBinding;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class ProfileActivity extends AppCompatActivity {
     private ActivityProfileBinding binding;
@@ -19,10 +20,11 @@ public class ProfileActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         replaceFragment(new ProfileFragment());
         ProfileFragment profileFragment = new ProfileFragment();
-        HomeFragment homeFragment = new HomeFragment();
+        HomeFragment homeFragment = new HomeFragment(findViewById(R.id.bottomNavigationView));
         MessagesFragment messagesFragment = new MessagesFragment();
         NotificationsFragment notificationsFragment = new NotificationsFragment();
         SettingsFragment settingsFragment = new SettingsFragment();
+        ((BottomNavigationView) findViewById(R.id.bottomNavigationView)).getOrCreateBadge(R.id.Home);
         binding.bottomNavigationView.setOnItemSelectedListener(item -> {
             switch (item.getItemId()){
                 case R.id.Home:
