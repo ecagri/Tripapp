@@ -28,7 +28,9 @@ import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -134,7 +136,11 @@ public class VisitProfileFragment extends Fragment {
                         }
                     });
 
-                    db.collection("users").document(sender).update("followers", FieldValue.arrayUnion(mAuth.getCurrentUser().getUid())).addOnCompleteListener(new OnCompleteListener<Void>() {
+                    Map<String, Object> follower = new HashMap<>();
+                    follower.put("date", LocalDateTime.now().toString());
+                    follower.put("uid", mAuth.getCurrentUser().getUid());
+                    follower.put("seen", false);
+                    db.collection("users").document(sender).update("followers", FieldValue.arrayUnion(follower)).addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
                             Toast.makeText(getActivity(), "You are following this user now!", Toast.LENGTH_SHORT).show();

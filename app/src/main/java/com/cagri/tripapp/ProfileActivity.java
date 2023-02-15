@@ -22,7 +22,7 @@ public class ProfileActivity extends AppCompatActivity {
         ProfileFragment profileFragment = new ProfileFragment();
         HomeFragment homeFragment = new HomeFragment(findViewById(R.id.bottomNavigationView));
         MessagesFragment messagesFragment = new MessagesFragment();
-        NotificationsFragment notificationsFragment = new NotificationsFragment();
+        NotificationsFragment notificationsFragment = new NotificationsFragment(findViewById(R.id.bottomNavigationView));
         SettingsFragment settingsFragment = new SettingsFragment();
         ((BottomNavigationView) findViewById(R.id.bottomNavigationView)).getOrCreateBadge(R.id.Home);
         binding.bottomNavigationView.setOnItemSelectedListener(item -> {
