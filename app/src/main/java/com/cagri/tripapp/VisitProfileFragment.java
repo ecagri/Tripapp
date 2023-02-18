@@ -191,10 +191,13 @@ public class VisitProfileFragment extends Fragment {
                         ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
                         if(followers != null){
                             ((TextView) view.findViewById(R.id.textView9)).setText(followers.size()+"");
-                            if(followers.contains(mAuth.getCurrentUser().getUid())) {
-                                TextView follow_button = (TextView) view.findViewById(R.id.follow_button);
-                                follow_button.setText("Following");
-                                follow_button.setBackgroundTintList(ColorStateList.valueOf(Color.BLUE));
+                            for(int i = 0; i < followers.size(); i++) {
+
+                                if (followers.get(i).containsValue(mAuth.getCurrentUser().getUid())) {
+                                    TextView follow_button = (TextView) view.findViewById(R.id.follow_button);
+                                    follow_button.setText("Following");
+                                    follow_button.setBackgroundTintList(ColorStateList.valueOf(Color.BLUE));
+                                }
                             }
                         }
                         if(followings != null){

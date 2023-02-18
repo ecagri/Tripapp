@@ -1,16 +1,11 @@
 package com.cagri.tripapp;
 
-import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -21,16 +16,12 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.MetadataChanges;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -47,11 +38,9 @@ public class HomeFragment extends Fragment {
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
-
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
-
     private FirebaseStorage storage = FirebaseStorage.getInstance();
 
     private StorageReference storageRef = storage.getReference();
@@ -59,17 +48,8 @@ public class HomeFragment extends Fragment {
     private ArrayList<String> likes = new ArrayList<>();
 
     private ArrayList<String> saves = new ArrayList<>();
-
     private BottomNavigationView bottomNavigationView;
-
-    LinearLayout linearLayout;
-
-    Uri selectedImage;
-    View view;
-
-    public ImageView showImage;
-
-    Context context;
+    private View view;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -105,52 +85,6 @@ public class HomeFragment extends Fragment {
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
 
-        db.collection("users").addSnapshotListener(MetadataChanges.EXCLUDE, new com.google.firebase.firestore.EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                ((LinearLayout) view.findViewById(R.id.container)).removeAllViews();
-                List<Post> postArray = new ArrayList<>();
-                for(QueryDocumentSnapshot documentSnapshot: value){
-                    String username = documentSnapshot.getData().get("username").toString();
-                    String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-                    ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
-                    if(posts != null) {
-                        for (int i = 0; i < posts.size(); i++) {
-                            db.collection("posts").document(posts.get(i)).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                                @Override
-                                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                    if(task.isSuccessful()){
-                                        DocumentSnapshot document = task.getResult();
-                                        String post_description = document.getString("post_description");
-                                        String post_picture = document.getString("post_picture");
-                                        String post_id = document.getString("id");
-                                        String post_date = document.getString("date");
-                                        String sender = document.getString("sender");
-                                        boolean seen = (boolean) document.getData().get("seen");
-                                        if(seen == false){
-                                            bottomNavigationView.getOrCreateBadge(R.id.Home);
-                                        }
-                                        Post post = new Post(username, profile_picture, post_description, post_picture, post_date, post_id, sender);
-                                        Post.createPost(view, getFragmentManager(), post);
-                                        postArray.add(new Post(username, profile_picture, post_description, post_picture, post_date, post_id,sender));
-                                        db.collection("posts").document(post_id).update("seen", true).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                            @Override
-                                            public void onComplete(@NonNull Task<Void> task) {
-
-                                            }
-                                        });
-                                    }
-                                }
-                            });
-                        }
-                        Collections.sort(postArray, Collections.reverseOrder());
-                        for(int i = 0; i < postArray.size(); i++){
-                            Post post = postArray.get(i);
-                        }
-                    }
-                }
-            }
-        });
     }
 
     @Override
@@ -158,12 +92,38 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         view = inflater.inflate(R.layout.fragment_home, container, false);
-        bottomNavigationView.removeBadge(R.id.Home);
+
+        db.collection("posts").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                if(task.isSuccessful()){
+                    for (QueryDocumentSnapshot document : task.getResult()) {
+                        String post_description = document.getString("post_description");
+                        String post_picture = document.getString("post_picture");
+                        String post_id = document.getString("id");
+                        String post_date = document.getString("date");
+                        String sender = document.getString("sender");
+                        db.collection("users").document(sender).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                if(task.isSuccessful()){
+                                    DocumentSnapshot documentSnapshot = task.getResult();
+                                    String username = documentSnapshot.getData().get("username").toString();
+                                    String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
+                                    Post post = new Post(username, profile_picture, post_description, post_picture, post_date, post_id, sender);
+                                    Post.createPost(view, getFragmentManager(), post);
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
         view.findViewById(R.id.imageButton2).setOnClickListener(view1 -> {
             PostDesignFragment fragment = new PostDesignFragment();
             FragmentManager fragmentManager = getFragmentManager();
             FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-            fragmentTransaction.replace(R.id.frameLayout, fragment);
+            fragmentTransaction.replace(R.id.frameLayout, fragment, "post_design");
             fragmentTransaction.addToBackStack(null);
             fragmentTransaction.commit();
         });

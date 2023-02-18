@@ -136,6 +136,7 @@ public class NotificationsFragment extends Fragment {
                                 }
                             });
                             Map<String, Object> follower = followers.get(i);
+                            follower.put("seen", true);
                             followers.set(i, follower);
                             FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).update("followers", followers).addOnCompleteListener(new OnCompleteListener<Void>() {
                                 @Override

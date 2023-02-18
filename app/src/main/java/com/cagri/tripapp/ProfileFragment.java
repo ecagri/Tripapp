@@ -26,10 +26,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.MetadataChanges;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
@@ -60,12 +57,15 @@ public class ProfileFragment extends Fragment {
     private StorageReference storageRef = storage.getReference();
     private ImageView showImage;
     private Uri selectedImage;
-
-    Context context;
+    private Context context;
     private View view;
 
     public ProfileFragment() {
         // Required empty public constructor
+
+    }
+
+    private void refresh(){
 
     }
 
@@ -98,43 +98,6 @@ public class ProfileFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).addSnapshotListener(MetadataChanges.EXCLUDE, new EventListener<DocumentSnapshot>() {
-            @Override
-            public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException error) {
-                ((LinearLayout) view.findViewById(R.id.container)).removeViews(3, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 3);
-                String username = documentSnapshot.getData().get("username").toString();
-                ((TextView)view.findViewById(R.id.textView)).setText("@" + username);
-                String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-
-                if(!profile_picture.equals("")) {
-                    Glide.get(getContext()).clearMemory();
-                    Glide.with(view).load(profile_picture).circleCrop().into(showImage);
-                }
-                else {
-                    Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(showImage);
-                }
-
-                ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followers");
-                ArrayList<Map<String, Object>> followings = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followings");
-                ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
-                if(followers != null){
-                    ((TextView) view.findViewById(R.id.textView9)).setText(followers.size()+"");
-                }
-                if(followings != null){
-                    ((TextView) view.findViewById(R.id.textView8)).setText(followings.size()+"");
-                }
-                if(posts != null){
-                    ((TextView) view.findViewById(R.id.textView7)).setText(posts.size()+"");
-                }
-
-                if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Posts){
-                    showPosts(username, profile_picture);
-                }
-                else if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Saves){
-                    showSaves(documentSnapshot);
-                }
-            }
-        });
         super.onViewCreated(view, savedInstanceState);
     }
 
@@ -146,6 +109,46 @@ public class ProfileFragment extends Fragment {
         ((LinearLayout) view.findViewById(R.id.container)).removeViews(3, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 3);
         showImage = ((ImageView) view.findViewById(R.id.imageButton));
         context=getContext();
+
+        FirebaseFirestore.getInstance().collection("users").document(mAuth.getCurrentUser().getUid()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot documentSnapshot = task.getResult();
+                    String username = documentSnapshot.getData().get("username").toString();
+                    ((TextView)view.findViewById(R.id.textView)).setText("@" + username);
+                    String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
+
+                    if(!profile_picture.equals("")) {
+                        Glide.get(getContext()).clearMemory();
+                        Glide.with(view).load(profile_picture).circleCrop().into(showImage);
+                    }
+                    else {
+                        Glide.with(view).load(R.drawable.baseline_person_24).circleCrop().into(showImage);
+                    }
+
+                    ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followers");
+                    ArrayList<Map<String, Object>> followings = (ArrayList<Map<String, Object>>) documentSnapshot.getData().get("followings");
+                    ArrayList<String> posts = (ArrayList<String>) documentSnapshot.getData().get("posts");
+                    if(followers != null){
+                        ((TextView) view.findViewById(R.id.textView9)).setText(followers.size()+"");
+                    }
+                    if(followings != null){
+                        ((TextView) view.findViewById(R.id.textView8)).setText(followings.size()+"");
+                    }
+                    if(posts != null){
+                        ((TextView) view.findViewById(R.id.textView7)).setText(posts.size()+"");
+                    }
+
+                    if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Posts){
+                        showPosts(username, profile_picture);
+                    }
+                    else if(((BottomNavigationView) view.findViewById(R.id.segment)).getSelectedItemId() == R.id.Saves){
+                        showSaves(documentSnapshot);
+                    }
+                }
+            }
+        });
 
         ((BottomNavigationView) view.findViewById(R.id.segment)).setOnItemSelectedListener(item -> {
             ((LinearLayout) view.findViewById(R.id.container)).removeViews(3, ((LinearLayout) view.findViewById(R.id.container)).getChildCount() - 3);
@@ -172,7 +175,7 @@ public class ProfileFragment extends Fragment {
             PostDesignFragment fragment = new PostDesignFragment();
             FragmentManager fragmentManager = getFragmentManager();
             FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-            fragmentTransaction.replace(R.id.frameLayout, fragment);
+            fragmentTransaction.replace(R.id.frameLayout, fragment, "post_design");
             fragmentTransaction.addToBackStack(null);
             fragmentTransaction.commit();
         });
