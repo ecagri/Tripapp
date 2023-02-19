@@ -1,10 +1,13 @@
 package com.cagri.tripapp;
 
+import static androidx.fragment.app.FragmentManager.TAG;
+
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +26,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
@@ -31,6 +35,7 @@ import com.google.firebase.storage.StorageReference;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -158,12 +163,31 @@ public class VisitProfileFragment extends Fragment {
                         public void onComplete(@NonNull Task<Void> task) {
                         }
                     });
-                    db.collection("users").document(sender).update("followers", FieldValue.arrayRemove(mAuth.getCurrentUser().getUid())).addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            Toast.makeText(getActivity(), "You are not following this user anymore!", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                    db.collection("users")
+                            .get()
+                            .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                @Override
+                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                    if (task.isSuccessful()) {
+                                        for (QueryDocumentSnapshot document : task.getResult()) {
+                                            ArrayList<Map<String, Object>> followers = (ArrayList<Map<String, Object>>) document.getData().get("followers");
+                                            for(Map<String,Object> follower : followers){
+                                                if(follower.get("uid").toString().equals(mAuth.getCurrentUser().getUid())){
+                                                    db.collection("users").document(sender).update("followers", FieldValue.arrayRemove(follower)).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                        @Override
+                                                        public void onComplete(@NonNull Task<Void> task) {
+                                                            Toast.makeText(getActivity(), "You are not following this user anymore!", Toast.LENGTH_SHORT).show();
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    } else {
+
+                                    }
+                                }
+                            });
+
                 }
             }
         });
@@ -206,7 +230,7 @@ public class VisitProfileFragment extends Fragment {
                         if(posts != null){
                             ((TextView) view.findViewById(R.id.textView7)).setText(posts.size()+"");
                         }
-                        db.collection("posts").whereEqualTo("sender", sender).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                        db.collection("posts").whereEqualTo("sender", sender).orderBy("date", Query.Direction.DESCENDING).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                             @Override
                             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                                 if(task.isSuccessful()){
