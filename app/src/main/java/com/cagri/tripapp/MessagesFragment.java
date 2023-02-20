@@ -2,11 +2,26 @@ package com.cagri.tripapp;
 
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+
+import java.util.ArrayList;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -24,8 +39,23 @@ public class MessagesFragment extends Fragment {
     private String mParam1;
     private String mParam2;
 
+    private FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+    private FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    private FirebaseStorage storage = FirebaseStorage.getInstance();
+
+    private StorageReference storageRef = storage.getReference();
+
+    private View view;
+
+    ArrayList<User> users;
+    RecyclerView recyclerView;
+    UserRcyclerAdapter userRcyclerAdapter;
+
+
     public MessagesFragment() {
         // Required empty public constructor
+
     }
 
     /**
@@ -53,12 +83,53 @@ public class MessagesFragment extends Fragment {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+
     }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_messages, container, false);
+        view =inflater.inflate(R.layout.fragment_messages, container, false);
+        viewSettings();
+        fillTheArray();
+        userRcyclerAdapter.notifyDataSetChanged();
+        return view;
+    }
+
+
+    private void viewSettings(){
+        recyclerView = view.findViewById(R.id.recycler_view);
+        users= new ArrayList<>();
+        userRcyclerAdapter = new UserRcyclerAdapter(users);
+        userRcyclerAdapter.setView(view);
+        recyclerView.setAdapter(userRcyclerAdapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this.getContext()));
+    }
+
+    private void fillTheArray(){
+
+        db.collection("users").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                if(task.isSuccessful()){
+                      for (QueryDocumentSnapshot document : task.getResult()){
+                        String username =document.get("username").toString();
+                        String profile_picture = document.get("profile_pic").toString();
+                        if(!profile_picture.equals("")){
+                            users.add(new User(profile_picture,username,"sa"));
+                        }else{
+                            users.add(new User("https://firebasestorage.googleapis.com/v0/b/tripapp-40c61.appspot.com/o/userfoto.png?alt=media&token=0e437092-8727-4b7f-8c5b-aea476540d38",username,"sa"));
+                        }
+
+
+                          }
+                      userRcyclerAdapter.notifyDataSetChanged();
+
+                }
+
+            }
+        });
     }
 }
