@@ -80,6 +80,14 @@ public class Post implements Comparable{
         return sender;
     }
 
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setProfile_picture(String profile_picture) {
+        this.profile_picture = profile_picture;
+    }
+
     public void setSender(String sender) {
         this.sender = sender;
     }
@@ -292,6 +300,14 @@ public class Post implements Comparable{
                 }
             });
         }
+    }
 
+    @Override
+    public String toString() {
+        return "Post{" +
+                "username='" + username + '\'' +
+                ", description='" + description + '\'' +
+                ", date='" + date + '\'' +
+                '}';
     }
 }

@@ -1,10 +1,10 @@
 package com.cagri.tripapp;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -94,30 +94,23 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         view = inflater.inflate(R.layout.fragment_home, container, false);
+        view.setBackgroundResource(R.drawable.splash);
+        view.findViewById(R.id.homeScroll).setVisibility(View.INVISIBLE);
 
-        db.collection("posts").orderBy("date", Query.Direction.DESCENDING).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+        FirebaseFirestore.getInstance().collection("posts").orderBy("date", Query.Direction.DESCENDING).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                 if(task.isSuccessful()){
+                    ArrayList<Post> posts = new ArrayList<>();
                     for (QueryDocumentSnapshot document : task.getResult()) {
                         String post_description = document.getString("post_description");
                         String post_picture = document.getString("post_picture");
                         String post_id = document.getString("id");
                         String post_date = document.getString("date");
                         String sender = document.getString("sender");
-                        db.collection("users").document(sender).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                            @Override
-                            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                                if(task.isSuccessful()){
-                                    DocumentSnapshot documentSnapshot = task.getResult();
-                                    String username = documentSnapshot.getData().get("username").toString();
-                                    String profile_picture = documentSnapshot.getData().get("profile_pic").toString();
-                                    Post post = new Post(username, profile_picture, post_description, post_picture, post_date, post_id, sender);
-                                    Post.createPost(view, getFragmentManager(), post);
-                                }
-                            }
-                        });
+                        posts.add(new Post("", "", post_description, post_picture, post_date, post_id, sender));
                     }
+                    getUserInfo(posts, 0);
                 }
             }
         });
@@ -131,5 +124,26 @@ public class HomeFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void getUserInfo(ArrayList<Post> posts, int iteration){
+        if(iteration >= posts.size() - 1) {
+            view.findViewById(R.id.homeScroll).setVisibility(View.VISIBLE);
+            view.setBackground(null);
+            return;
+        }
+        Post post = posts.get(iteration);
+        FirebaseFirestore.getInstance().collection("users").document(post.getSender()).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if (task.isSuccessful()) {
+                    DocumentSnapshot documentSnapshot = task.getResult();
+                    post.setUsername(documentSnapshot.getData().get("username").toString());
+                    post.setProfile_picture(documentSnapshot.getData().get("profile_pic").toString());
+                    Post.createPost(view, getFragmentManager(), post);
+                    getUserInfo(posts, iteration + 1);
+                }
+            }
+        });
     }
 }

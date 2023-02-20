@@ -80,11 +80,11 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void addHomeListeners(){
-        homePostListener = db.collection("posts").addSnapshotListener(new EventListener<QuerySnapshot>() {
+        homePostListener = db.collection("posts").whereEqualTo("sender", mAuth.getCurrentUser().getUid()).addSnapshotListener(new EventListener<QuerySnapshot>() {
             @Override
             public void onEvent(@Nullable QuerySnapshot snapshots, @Nullable FirebaseFirestoreException error) {
                 for (DocumentChange dc : snapshots.getDocumentChanges()) {
-                    if (dc.getType() == DocumentChange.Type.ADDED || dc.getType() == DocumentChange.Type.REMOVED) {
+                    if (dc.getType() == DocumentChange.Type.REMOVED) {
                         if(getSupportFragmentManager().findFragmentByTag("home") != null && getSupportFragmentManager().findFragmentByTag("post_design") == null){
                             getSupportFragmentManager().beginTransaction().replace(R.id.frameLayout, new HomeFragment(findViewById(R.id.bottomNavigationView)), "home").commit();
                         }
