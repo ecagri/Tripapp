@@ -63,6 +63,7 @@ public class SignUpActivity extends AppCompatActivity {
                                     user.put("followers", new ArrayList<>());
                                     user.put("followings", new ArrayList<>());
                                     user.put("save", new ArrayList<>());
+                                    user.put("messages",new ArrayList<>());
                                     db.collection("users").document(mAuth.getCurrentUser().getUid()).set(user).addOnSuccessListener(new OnSuccessListener<Void>() {
                                         @Override
                                         public void onSuccess(Void unused) {
