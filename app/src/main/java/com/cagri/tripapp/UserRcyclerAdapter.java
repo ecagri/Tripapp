@@ -14,7 +14,7 @@ import com.bumptech.glide.Glide;
 import java.util.ArrayList;
 
 public class UserRcyclerAdapter extends RecyclerView.Adapter<UserRcyclerAdapter.MyViewHolder> {
-
+    private final RecyclerViewInterface recyclerViewInterface;
     private ArrayList<User> users;
     private  View view ;
 
@@ -22,8 +22,9 @@ public class UserRcyclerAdapter extends RecyclerView.Adapter<UserRcyclerAdapter.
         this.view = view;
     }
 
-    public UserRcyclerAdapter(ArrayList<User> users) {
+    public UserRcyclerAdapter(ArrayList<User> users,RecyclerViewInterface recyclerViewInterface) {
         this.users = users;
+        this.recyclerViewInterface=recyclerViewInterface;
     }
 
     @NonNull
@@ -56,6 +57,18 @@ public class UserRcyclerAdapter extends RecyclerView.Adapter<UserRcyclerAdapter.
             message_pname= itemView.findViewById(R.id.message_pname);
             message_pmessage = itemView.findViewById(R.id.message_pmessage);
             message_pp=itemView.findViewById(R.id.message_pp);
+
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if(recyclerViewInterface!=null){
+                        int pos=getAdapterPosition();
+                        if(pos!= RecyclerView.NO_POSITION){
+                            recyclerViewInterface.onItemClick(pos);
+                        }
+                    }
+                }
+            });
         }
     }
 }

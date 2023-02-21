@@ -4,10 +4,13 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -28,7 +31,7 @@ import java.util.ArrayList;
  * Use the {@link MessagesFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class MessagesFragment extends Fragment {
+public class MessagesFragment extends Fragment implements RecyclerViewInterface{
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -95,6 +98,7 @@ public class MessagesFragment extends Fragment {
         viewSettings();
         fillTheArray();
         userRcyclerAdapter.notifyDataSetChanged();
+
         return view;
     }
 
@@ -102,7 +106,7 @@ public class MessagesFragment extends Fragment {
     private void viewSettings(){
         recyclerView = view.findViewById(R.id.recycler_view);
         users= new ArrayList<>();
-        userRcyclerAdapter = new UserRcyclerAdapter(users);
+        userRcyclerAdapter = new UserRcyclerAdapter(users,this);
         userRcyclerAdapter.setView(view);
         recyclerView.setAdapter(userRcyclerAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this.getContext()));
@@ -115,14 +119,13 @@ public class MessagesFragment extends Fragment {
             public void onComplete(@NonNull Task<QuerySnapshot> task) {
                 if(task.isSuccessful()){
                       for (QueryDocumentSnapshot document : task.getResult()){
-                        String username =document.get("username").toString();
-                        String profile_picture = document.get("profile_pic").toString();
-                        if(!profile_picture.equals("")){
-                            users.add(new User(profile_picture,username,"sa"));
-                        }else{
-                            users.add(new User("https://firebasestorage.googleapis.com/v0/b/tripapp-40c61.appspot.com/o/userfoto.png?alt=media&token=0e437092-8727-4b7f-8c5b-aea476540d38",username,"sa"));
-                        }
-
+                          String uid= document.get("uid").toString();
+                          String username =document.get("username").toString();
+                          String profile_picture = document.get("profile_pic").toString();
+                          if(profile_picture.equals("")){
+                              profile_picture="https://firebasestorage.googleapis.com/v0/b/tripapp-40c61.appspot.com/o/userfoto.png?alt=media&token=0e437092-8727-4b7f-8c5b-aea476540d38";
+                          }
+                          users.add(new User(profile_picture,username,"sa",uid));
 
                           }
                       userRcyclerAdapter.notifyDataSetChanged();
@@ -131,5 +134,16 @@ public class MessagesFragment extends Fragment {
 
             }
         });
+    }
+
+    @Override
+    public void onItemClick(int position) {
+
+        MessagesPersonFragment fragment = new MessagesPersonFragment(users.get(position).getUid(),mAuth.getCurrentUser().getUid());
+        FragmentManager fragmentManager = getFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.frameLayout, fragment, "message_person");
+        fragmentTransaction.addToBackStack(null);
+        fragmentTransaction.commit();
     }
 }
