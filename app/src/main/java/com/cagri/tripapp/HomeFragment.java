@@ -16,6 +16,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -52,6 +53,8 @@ public class HomeFragment extends Fragment {
 
     private ArrayList<String> saves = new ArrayList<>();
     private BottomNavigationView bottomNavigationView;
+
+    private ListenerRegistration homeUserListener;
     private View view;
 
     public HomeFragment() {
@@ -60,6 +63,10 @@ public class HomeFragment extends Fragment {
 
     public HomeFragment(BottomNavigationView bottomNavigationView){
         this.bottomNavigationView = bottomNavigationView;
+    }
+
+    public ListenerRegistration getHomeUserListener() {
+        return homeUserListener;
     }
 
     /**
@@ -97,6 +104,8 @@ public class HomeFragment extends Fragment {
         view = inflater.inflate(R.layout.fragment_home, container, false);
         view.setBackgroundResource(R.drawable.splash);
         view.findViewById(R.id.homeScroll).setVisibility(View.INVISIBLE);
+        view.findViewById(R.id.showRecent).setVisibility(View.INVISIBLE);
+        bottomNavigationView.removeBadge(R.id.Home);
 
         FirebaseFirestore.getInstance().collection("posts").orderBy("date", Query.Direction.DESCENDING).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
@@ -123,6 +132,10 @@ public class HomeFragment extends Fragment {
             fragmentTransaction.replace(R.id.frameLayout, fragment, "post_design");
             fragmentTransaction.addToBackStack(null);
             fragmentTransaction.commit();
+        });
+
+        view.findViewById(R.id.showRecentButton).setOnClickListener(view1 -> {
+            getFragmentManager().beginTransaction().replace(R.id.frameLayout, new HomeFragment(bottomNavigationView), "home").commit();
         });
 
         return view;

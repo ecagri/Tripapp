@@ -1,12 +1,14 @@
 package com.cagri.tripapp;
 
 import android.os.Bundle;
+import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.cagri.tripapp.databinding.ActivityProfileBinding;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.EventListener;
@@ -18,8 +20,9 @@ import com.google.firebase.firestore.QuerySnapshot;
 public class ProfileActivity extends AppCompatActivity {
     private ActivityProfileBinding binding;
     private ListenerRegistration profileListener;
-
+    private ListenerRegistration homeUserListener;
     private ListenerRegistration homePostListener;
+    private ListenerRegistration homeBadgeListener;
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -32,6 +35,7 @@ public class ProfileActivity extends AppCompatActivity {
         NotificationsFragment notificationsFragment = new NotificationsFragment(findViewById(R.id.bottomNavigationView));
 
         addProfileListener();
+        addBadgeListener();
         getSupportFragmentManager().beginTransaction().replace(R.id.frameLayout, new ProfileFragment(), "profile").commit();
 
         binding.bottomNavigationView.setOnItemSelectedListener(item -> {
@@ -40,6 +44,9 @@ public class ProfileActivity extends AppCompatActivity {
             }
             if(homePostListener != null){
                 homePostListener.remove();
+            }
+            if(homeUserListener != null){
+                homeUserListener.remove();
             }
             switch (item.getItemId()){
                 case R.id.Home:
@@ -87,6 +94,38 @@ public class ProfileActivity extends AppCompatActivity {
                     if (dc.getType() == DocumentChange.Type.REMOVED) {
                         if(getSupportFragmentManager().findFragmentByTag("home") != null && getSupportFragmentManager().findFragmentByTag("post_design") == null){
                             getSupportFragmentManager().beginTransaction().replace(R.id.frameLayout, new HomeFragment(findViewById(R.id.bottomNavigationView)), "home").commit();
+                            return;
+                        }
+                    }
+                }
+            }
+        });
+
+        homeUserListener = db.collection("posts").whereNotEqualTo("sender", mAuth.getCurrentUser().getUid()).addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot snapshots, @Nullable FirebaseFirestoreException error) {
+                for (DocumentChange dc : snapshots.getDocumentChanges()) {
+                    if (dc.getType() == DocumentChange.Type.ADDED) {
+                        if(getSupportFragmentManager().findFragmentByTag("home") != null && getSupportFragmentManager().findFragmentByTag("post_design") == null){
+                            if(getSupportFragmentManager().findFragmentByTag("home").getView().findViewById(R.id.homeScroll).getVisibility() == View.VISIBLE)
+                                getSupportFragmentManager().findFragmentByTag("home").getView().findViewById(R.id.showRecent).setVisibility(View.VISIBLE);
+                            return;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    private void addBadgeListener(){
+        homeBadgeListener = db.collection("posts").addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot snapshots, @Nullable FirebaseFirestoreException error) {
+                for (DocumentChange dc : snapshots.getDocumentChanges()) {
+                    if(dc.getType() == DocumentChange.Type.ADDED) {
+                        if (getSupportFragmentManager().findFragmentByTag("home") == null) {
+                            ((BottomNavigationView) findViewById(R.id.bottomNavigationView)).getOrCreateBadge(R.id.Home);
+                            return;
                         }
                     }
                 }

@@ -33,4 +33,24 @@
         android:scaleType="fitXY"
         android:src="@drawable/baseline_post_add_24" />
 
+    <androidx.cardview.widget.CardView
+        android:id="@+id/showRecent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:backgroundTint="#000000"
+        android:visibility="visible"
+        app:cardCornerRadius="30dp">
+
+        <Button
+            android:id="@+id/showRecentButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#000000"
+            android:drawableLeft="@drawable/baseline_refresh_24"
+            android:text="Show recent posts" />
+    </androidx.cardview.widget.CardView>
+
 </RelativeLayout>
